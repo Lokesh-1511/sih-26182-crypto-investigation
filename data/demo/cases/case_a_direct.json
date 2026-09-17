@@ -1,0 +1,12 @@
+{
+  "case_id": "CASE-2026-001A",
+  "title": "Operation Sovereign Shield - Direct VASP Sweep",
+  "investigator": "Insp. Vikramaditya (Cyber Crime Cell)",
+  "description": "Suspect wallet directly deposited 1.45 BTC into Binance custodial infrastructure.",
+  "priority": "HIGH",
+  "suspect_wallet": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+  "chain": "BTC",
+  "created_at": "2026-03-12T10:00:00Z",
+  "expected_vasp": "Binance",
+  "expected_confidence_band": "HIGH"
+}

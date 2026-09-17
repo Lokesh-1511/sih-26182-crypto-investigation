@@ -1,0 +1,20 @@
+[
+  {
+    "address": "0x3ee18B2214AFF97000D974cf647E7C347E8fa585",
+    "chain": "ETH",
+    "entity_name": "Multichain AnySwap Bridge",
+    "entity_type": "BRIDGE",
+    "confidence": 1.0,
+    "label_source": "PUBLIC_INTELLIGENCE",
+    "notes": "EVM to Multi-chain Cross Bridge Router"
+  },
+  {
+    "address": "0x3666f603Cc164936C1b87e207F36BEBa4AC5f18a",
+    "chain": "ETH",
+    "entity_name": "Hop Protocol Bridge",
+    "entity_type": "BRIDGE",
+    "confidence": 1.0,
+    "label_source": "PUBLIC_INTELLIGENCE",
+    "notes": "Hop Protocol L2 Liquidity Bridge"
+  }
+]

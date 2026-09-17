@@ -1,0 +1,146 @@
+[
+  {
+    "tx_id": "0x3a9b8812c4901f606132d9ed9d5fad79f18b57062112233445566778899aabbcc",
+    "chain": "ETH",
+    "block_number": 19482010,
+    "timestamp": "2026-03-14T08:35:10Z",
+    "status": "SUCCESS",
+    "from_address": "0x71C83e20e8F468a3E282241F8C936f4521487439",
+    "to_address": "0x3a9B552f4c91E606132D9eD9D5FaD79f18B57062",
+    "asset": "ETH",
+    "amount": 12.5,
+    "fee": 0.0021,
+    "source": "CONTROLLED_FIXTURE",
+    "transfers": [
+      {
+        "tx_id": "0x3a9b8812c4901f606132d9ed9d5fad79f18b57062112233445566778899aabbcc",
+        "from_address": "0x71C83e20e8F468a3E282241F8C936f4521487439",
+        "to_address": "0x3a9B552f4c91E606132D9eD9D5FaD79f18B57062",
+        "asset": "ETH",
+        "amount": 12.5,
+        "hop_distance": 1,
+        "timestamp": "2026-03-14T08:35:10Z"
+      }
+    ]
+  },
+  {
+    "tx_id": "0x4838b111fc002233445566778899aabbccddeeff00112233445566778899aabb",
+    "chain": "ETH",
+    "block_number": 19482018,
+    "timestamp": "2026-03-14T08:38:40Z",
+    "status": "SUCCESS",
+    "from_address": "0x3a9B552f4c91E606132D9eD9D5FaD79f18B57062",
+    "to_address": "0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97",
+    "asset": "ETH",
+    "amount": 6.2,
+    "fee": 0.0018,
+    "source": "CONTROLLED_FIXTURE",
+    "transfers": [
+      {
+        "tx_id": "0x4838b111fc002233445566778899aabbccddeeff00112233445566778899aabb",
+        "from_address": "0x3a9B552f4c91E606132D9eD9D5FaD79f18B57062",
+        "to_address": "0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97",
+        "asset": "ETH",
+        "amount": 6.2,
+        "hop_distance": 2,
+        "timestamp": "2026-03-14T08:38:40Z"
+      }
+    ]
+  },
+  {
+    "tx_id": "0x95222211fc002233445566778899aabbccddeeff00112233445566778899aacc",
+    "chain": "ETH",
+    "block_number": 19482019,
+    "timestamp": "2026-03-14T08:39:10Z",
+    "status": "SUCCESS",
+    "from_address": "0x3a9B552f4c91E606132D9eD9D5FaD79f18B57062",
+    "to_address": "0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5",
+    "asset": "ETH",
+    "amount": 3.1,
+    "fee": 0.0015,
+    "source": "CONTROLLED_FIXTURE",
+    "transfers": [
+      {
+        "tx_id": "0x95222211fc002233445566778899aabbccddeeff00112233445566778899aacc",
+        "from_address": "0x3a9B552f4c91E606132D9eD9D5FaD79f18B57062",
+        "to_address": "0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5",
+        "asset": "ETH",
+        "amount": 3.1,
+        "hop_distance": 2,
+        "timestamp": "2026-03-14T08:39:10Z"
+      }
+    ]
+  },
+  {
+    "tx_id": "0x1db34311fc002233445566778899aabbccddeeff00112233445566778899aadd",
+    "chain": "ETH",
+    "block_number": 19482020,
+    "timestamp": "2026-03-14T08:39:30Z",
+    "status": "SUCCESS",
+    "from_address": "0x3a9B552f4c91E606132D9eD9D5FaD79f18B57062",
+    "to_address": "0x1Db3439a222C519ab44bb1144fC28167b4Fa6EE6",
+    "asset": "ETH",
+    "amount": 3.2,
+    "fee": 0.0015,
+    "source": "CONTROLLED_FIXTURE",
+    "transfers": [
+      {
+        "tx_id": "0x1db34311fc002233445566778899aabbccddeeff00112233445566778899aadd",
+        "from_address": "0x3a9B552f4c91E606132D9eD9D5FaD79f18B57062",
+        "to_address": "0x1Db3439a222C519ab44bb1144fC28167b4Fa6EE6",
+        "asset": "ETH",
+        "amount": 3.2,
+        "hop_distance": 2,
+        "timestamp": "2026-03-14T08:39:30Z"
+      }
+    ]
+  },
+  {
+    "tx_id": "0xd8da6b99887766554433221100aabbccddeeff00112233445566778899aabbcc",
+    "chain": "ETH",
+    "block_number": 19482035,
+    "timestamp": "2026-03-14T08:45:00Z",
+    "status": "SUCCESS",
+    "from_address": "0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97",
+    "to_address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    "asset": "ETH",
+    "amount": 6.18,
+    "fee": 0.0016,
+    "source": "CONTROLLED_FIXTURE",
+    "transfers": [
+      {
+        "tx_id": "0xd8da6b99887766554433221100aabbccddeeff00112233445566778899aabbcc",
+        "from_address": "0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97",
+        "to_address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+        "asset": "ETH",
+        "amount": 6.18,
+        "hop_distance": 3,
+        "timestamp": "2026-03-14T08:45:00Z"
+      }
+    ]
+  },
+  {
+    "tx_id": "0x28c6c000112233445566778899aabbccddeeff00112233445566778899aabbcc",
+    "chain": "ETH",
+    "block_number": 19482060,
+    "timestamp": "2026-03-14T09:12:00Z",
+    "status": "SUCCESS",
+    "from_address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    "to_address": "0x28C6c06298d514Db089934071355E5743bf21d60",
+    "asset": "ETH",
+    "amount": 6.15,
+    "fee": 0.0025,
+    "source": "CONTROLLED_FIXTURE",
+    "transfers": [
+      {
+        "tx_id": "0x28c6c000112233445566778899aabbccddeeff00112233445566778899aabbcc",
+        "from_address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+        "to_address": "0x28C6c06298d514Db089934071355E5743bf21d60",
+        "asset": "ETH",
+        "amount": 6.15,
+        "hop_distance": 4,
+        "timestamp": "2026-03-14T09:12:00Z"
+      }
+    ]
+  }
+]

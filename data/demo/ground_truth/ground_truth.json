@@ -1,0 +1,35 @@
+{
+  "benchmark_cases": [
+    {
+      "case_id": "CASE-2026-001A",
+      "suspect_wallet": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+      "chain": "BTC",
+      "ground_truth_vasp": "Binance",
+      "expected_min_score": 75.0,
+      "expected_band": "HIGH",
+      "expected_hops": 2,
+      "has_breakpoint": false
+    },
+    {
+      "case_id": "CASE-2026-002B",
+      "suspect_wallet": "0x71C83e20e8F468a3E282241F8C936f4521487439",
+      "chain": "ETH",
+      "ground_truth_vasp": "Binance",
+      "expected_min_score": 70.0,
+      "expected_band": "HIGH",
+      "expected_hops": 4,
+      "has_breakpoint": true,
+      "expected_breakpoint_address": "0x3a9b552f4c91e606132d9ed9d5fad79f18b57062"
+    },
+    {
+      "case_id": "CASE-2026-003C",
+      "suspect_wallet": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "chain": "TRX",
+      "ground_truth_vasp": "OKX",
+      "expected_min_score": 50.0,
+      "expected_band": "MEDIUM",
+      "expected_hops": 3,
+      "has_breakpoint": true
+    }
+  ]
+}

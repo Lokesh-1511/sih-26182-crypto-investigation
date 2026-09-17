@@ -1,0 +1,42 @@
+[
+  {
+    "entity_id": "VASP_BINANCE",
+    "entity_name": "Binance",
+    "entity_type": "CENTRALIZED_EXCHANGE",
+    "chain": "ETH",
+    "country": "International",
+    "notes": "Global Centralized Cryptocurrency Exchange"
+  },
+  {
+    "entity_id": "VASP_KRAKEN",
+    "entity_name": "Kraken",
+    "entity_type": "CENTRALIZED_EXCHANGE",
+    "chain": "ETH",
+    "country": "US",
+    "notes": "US-Regulated Virtual Asset Service Provider"
+  },
+  {
+    "entity_id": "VASP_COINBASE",
+    "entity_name": "Coinbase",
+    "entity_type": "CENTRALIZED_EXCHANGE",
+    "chain": "BTC",
+    "country": "US",
+    "notes": "Publicly Listed Custodial Exchange"
+  },
+  {
+    "entity_id": "VASP_WAZIRX",
+    "entity_name": "WazirX",
+    "entity_type": "CENTRALIZED_EXCHANGE",
+    "chain": "ETH",
+    "country": "India",
+    "notes": "Indian FIU-Registered Exchange"
+  },
+  {
+    "entity_id": "VASP_OKX",
+    "entity_name": "OKX",
+    "entity_type": "CENTRALIZED_EXCHANGE",
+    "chain": "TRX",
+    "country": "Seychelles",
+    "notes": "Global Crypto Exchange"
+  }
+]

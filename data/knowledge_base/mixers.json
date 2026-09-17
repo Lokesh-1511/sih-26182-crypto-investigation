@@ -1,0 +1,20 @@
+[
+  {
+    "address": "0xd90e2f925DA726b50C4Ed8D0Fb90Ad053324F31b",
+    "chain": "ETH",
+    "entity_name": "Tornado.Cash: 0.1 ETH",
+    "entity_type": "MIXER",
+    "confidence": 1.0,
+    "label_source": "OFAC_SANCTIONS_LIST",
+    "notes": "OFAC Sanctioned Tornado.Cash Mixing Pool"
+  },
+  {
+    "address": "0x47CE0C6eD5B0Ce3d3A51fdb1C52DC66a7c3c2936",
+    "chain": "ETH",
+    "entity_name": "Tornado.Cash: 1 ETH",
+    "entity_type": "MIXER",
+    "confidence": 1.0,
+    "label_source": "OFAC_SANCTIONS_LIST",
+    "notes": "OFAC Sanctioned Tornado.Cash 1 ETH Pool"
+  }
+]

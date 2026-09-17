@@ -1,0 +1,12 @@
+{
+  "case_id": "CASE-2026-003C",
+  "title": "Operation Cross-Chain Bridge Transit",
+  "investigator": "DSP Rajesh Verma (FIU Liaison)",
+  "description": "Cross-chain flow originating on Tron moving through bridge gateway contract into OKX deposit infrastructure.",
+  "priority": "HIGH",
+  "suspect_wallet": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+  "chain": "TRX",
+  "created_at": "2026-03-15T12:00:00Z",
+  "expected_vasp": "OKX",
+  "expected_confidence_band": "MEDIUM"
+}

@@ -1,0 +1,29 @@
+[
+  {
+    "address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    "chain": "ETH",
+    "entity_name": "Binance",
+    "entity_type": "VASP_DEPOSIT",
+    "confidence": 0.95,
+    "label_source": "CONTROLLED_DEMO",
+    "notes": "Verified Binance Custodial Deposit Infrastructure for Case B"
+  },
+  {
+    "address": "1NDyJtNTjmwk5xPNhjgAMu4HDHigtobu1s",
+    "chain": "BTC",
+    "entity_name": "Binance",
+    "entity_type": "VASP_DEPOSIT",
+    "confidence": 0.98,
+    "label_source": "CONTROLLED_DEMO",
+    "notes": "Verified Binance BTC Custodial Deposit Address for Case A"
+  },
+  {
+    "address": "TYDzsYUEpvnYmQk4zGP9sWWcTEd3ZiPULj",
+    "chain": "TRX",
+    "entity_name": "OKX",
+    "entity_type": "VASP_DEPOSIT",
+    "confidence": 0.92,
+    "label_source": "CONTROLLED_DEMO",
+    "notes": "OKX TRC20 Custodial Deposit Address for Case C"
+  }
+]

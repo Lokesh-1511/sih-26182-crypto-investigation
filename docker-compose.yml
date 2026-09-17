@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sih-26182-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATA_SOURCE_MODE=OFFLINE_FIXTURE
+      - DATABASE_URL=sqlite:///./crypto_investigation.db
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sih-26182-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
