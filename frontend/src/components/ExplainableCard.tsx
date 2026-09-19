@@ -81,10 +81,10 @@ export const ExplainableCard: React.FC<Props> = ({ attribution, onOpenReport, on
       {/* Terminal Deposit Information if available */}
       {cand.terminal_deposit_address && (
         <div style={{ background: 'var(--bg-input)', padding: '6px 10px', borderRadius: 4, border: '1px solid var(--border-subtle)', marginBottom: 12, fontSize: 11 }}>
-          <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em' }}>
+          <span style={{ color: 'var(--c-charcoal)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em' }}>
             Terminal Deposit Wallet:
           </span>
-          <code className="mono" style={{ color: 'var(--accent-emerald)', marginLeft: 6 }}>
+          <code className="mono" style={{ color: 'var(--c-sand)', marginLeft: 6 }}>
             {cand.terminal_deposit_address}
           </code>
         </div>
@@ -103,7 +103,7 @@ export const ExplainableCard: React.FC<Props> = ({ attribution, onOpenReport, on
         </div>
         <div className="demarcation-row">
           <span style={{ color: 'var(--text-secondary)' }}>Beneficiary Identity:</span>
-          <strong style={{ color: 'var(--accent-crimson)' }}>
+          <strong style={{ color: 'var(--sig-critical)' }}>
             {attribution.operator_beneficiary.beneficiary_identity}
           </strong>
         </div>
@@ -159,7 +159,7 @@ export const ExplainableCard: React.FC<Props> = ({ attribution, onOpenReport, on
         <div className="counterfactual-box">
           <div className="cf-header">
             <span className="cf-title">Algorithmic Evidence Factor Ablation</span>
-            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>STABILITY SIMULATOR</span>
+            <span style={{ fontSize: 10, color: 'var(--c-charcoal)' }}>STABILITY SIMULATOR</span>
           </div>
           <table className="cf-table">
             <thead>
@@ -176,12 +176,12 @@ export const ExplainableCard: React.FC<Props> = ({ attribution, onOpenReport, on
                 <tr key={idx}>
                   <td style={{ color: 'var(--text-white)' }}>{cf.factor_removed}</td>
                   <td className="mono">{cf.original_score}%</td>
-                  <td className="mono" style={{ color: 'var(--accent-amber)' }}>{cf.new_score}%</td>
-                  <td className="mono" style={{ color: 'var(--accent-crimson)' }}>-{cf.score_delta}</td>
+                  <td className="mono" style={{ color: 'var(--c-sand)' }}>{cf.new_score}%</td>
+                  <td className="mono" style={{ color: 'var(--sig-critical)' }}>-{cf.score_delta}</td>
                   <td>
                     <span className="priority-pill" style={{
-                      background: cf.robustness_evaluation === 'ROBUST' ? 'var(--accent-emerald-subtle)' : 'var(--accent-amber-subtle)',
-                      color: cf.robustness_evaluation === 'ROBUST' ? 'var(--accent-emerald)' : 'var(--accent-amber)',
+                      background: cf.robustness_evaluation === 'ROBUST' ? 'var(--c-steel-subtle)' : 'var(--c-sand-subtle)',
+                      color: cf.robustness_evaluation === 'ROBUST' ? 'var(--c-steel)' : 'var(--c-sand)',
                       border: '1px solid currentColor'
                     }}>
                       {cf.robustness_evaluation}

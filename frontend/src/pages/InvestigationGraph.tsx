@@ -19,36 +19,36 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
 
     const elements: cytoscape.ElementDefinition[] = [];
 
-    // Map Nodes
+    // Map Nodes with Custom Austere Forensic Palette
     graphData.nodes.forEach((n) => {
-      let bg = '#1e293b'; // Intermediary slate
-      let border = '#475569';
+      let bg = '#191b22'; // Intermediary / Transit
+      let border = '#4e5166';
       let shape: cytoscape.Css.NodeShape = 'ellipse';
       let size = 32;
 
       if (n.node_type === 'SUSPECT') {
-        bg = '#3b0712';
-        border = '#ef4444';
+        bg = '#2c1b1f';
+        border = '#a65252';
         shape = 'round-rectangle';
         size = 36;
       } else if (n.node_type === 'VASP_DEPOSIT') {
-        bg = '#451a03';
-        border = '#f59e0b';
+        bg = '#25221c';
+        border = '#b5aa9d';
         shape = 'hexagon';
-        size = 34;
+        size = 36;
       } else if (n.node_type === 'VASP_HOT') {
-        bg = '#172554';
-        border = '#3b82f6';
+        bg = '#1e242d';
+        border = '#7c90a0';
         shape = 'round-rectangle';
         size = 40;
       } else if (n.node_type === 'MIXER') {
-        bg = '#4a044e';
-        border = '#d946ef';
+        bg = '#29252c';
+        border = '#747274';
         shape = 'octagon';
         size = 36;
       } else if (n.node_type === 'BRIDGE') {
-        bg = '#083344';
-        border = '#06b6d4';
+        bg = '#1e262c';
+        border = '#7c90a0';
         shape = 'diamond';
         size = 36;
       }
@@ -106,14 +106,14 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
             'width': 'data(nodeSize)',
             'height': 'data(nodeSize)',
             'label': 'data(label)',
-            'color': '#f8fafc',
+            'color': '#b9b7a7',
             'font-size': '11px',
             'font-family': 'JetBrains Mono, monospace',
             'font-weight': 600,
             'text-valign': 'bottom',
             'text-margin-y': 6,
-            'text-background-opacity': 0.8,
-            'text-background-color': '#090d16',
+            'text-background-opacity': 0.85,
+            'text-background-color': '#121318',
             'text-background-padding': '2px',
             'text-background-shape': 'roundrectangle'
           }
@@ -121,15 +121,15 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
         {
           selector: 'node[?isBreakpoint]',
           style: {
-            'border-color': '#ef4444',
-            'border-width': 4,
+            'border-color': '#a65252',
+            'border-width': 3,
             'border-opacity': 1
           }
         },
         {
           selector: 'node:selected',
           style: {
-            'border-color': '#38bdf8',
+            'border-color': '#b5aa9d',
             'border-width': 3,
             'border-opacity': 1
           }
@@ -138,8 +138,8 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
           selector: 'edge',
           style: {
             'width': 2,
-            'line-color': '#334155',
-            'target-arrow-color': '#64748b',
+            'line-color': '#3b3f4f',
+            'target-arrow-color': '#7c90a0',
             'target-arrow-shape': 'triangle',
             'arrow-scale': 1.1,
             'curve-style': 'bezier',
@@ -147,9 +147,9 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
             'font-size': '10px',
             'font-family': 'JetBrains Mono, monospace',
             'font-weight': 500,
-            'color': '#94a3b8',
+            'color': '#b5aa9d',
             'text-background-opacity': 0.9,
-            'text-background-color': '#0b1120',
+            'text-background-color': '#181a22',
             'text-background-padding': '3px',
             'text-background-shape': 'roundrectangle',
             'text-rotation': 'autorotate'
@@ -158,10 +158,10 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
         {
           selector: 'edge:selected',
           style: {
-            'line-color': '#3b82f6',
-            'target-arrow-color': '#3b82f6',
-            'width': 3,
-            'color': '#ffffff'
+            'line-color': '#b5aa9d',
+            'target-arrow-color': '#b5aa9d',
+            'width': 2.5,
+            'color': '#f5f4f0'
           }
         }
       ],
@@ -281,7 +281,7 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
               Topological anomaly detected at transit hop: rapid fan-out / layering detected.
             </span>
           </div>
-          <span style={{ fontSize: 11, color: 'var(--accent-crimson)', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ fontSize: 11, color: 'var(--sig-critical)', fontFamily: 'var(--font-mono)' }}>
             CHOKEPOINT_ID: BRK-02
           </span>
         </div>
@@ -298,7 +298,7 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
           </div>
           <div>
             <div className="inspector-field-label">Entity Classification</div>
-            <div className="inspector-field-val" style={{ color: 'var(--accent-blue)' }}>
+            <div className="inspector-field-val" style={{ color: 'var(--c-sand)' }}>
               {selectedNode.entity_name} ({selectedNode.type})
             </div>
           </div>

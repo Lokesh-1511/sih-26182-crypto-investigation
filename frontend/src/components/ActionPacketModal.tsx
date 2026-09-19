@@ -41,7 +41,7 @@ export const ActionPacketModal: React.FC<Props> = ({ isOpen, onClose, packetData
         <div className="modal-header">
           <div className="modal-title">
             <span>LAWFUL ACTION PACKET (STATUTORY REQUISITION)</span>
-            <span className="navbar-badge" style={{ color: 'var(--accent-amber)', borderColor: 'var(--accent-amber)' }}>
+            <span className="priority-pill urgent" style={{ marginLeft: 10 }}>
               OFFICER REVIEW REQUIRED
             </span>
           </div>
@@ -49,48 +49,58 @@ export const ActionPacketModal: React.FC<Props> = ({ isOpen, onClose, packetData
         </div>
 
         <div className="modal-body">
-          <div className="banner-warning">
-            <strong>CRITICAL PROCEDURAL SAFEGUARD:</strong><br />
-            {packetData.statutory_disclaimer}
+          <div className="legal-demarcation-card" style={{ borderLeftColor: 'var(--sig-alert)' }}>
+            <div className="demarcation-header" style={{ color: 'var(--sig-alert)' }}>
+              CRITICAL PROCEDURAL SAFEGUARD
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--c-steel)', lineHeight: 1.5 }}>
+              {packetData.statutory_disclaimer}
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
-            <div style={{ background: 'var(--bg-input)', padding: 10, borderRadius: 6, border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>PACKET IDENTIFIER</div>
-              <div className="mono" style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-blue)' }}>
+            <div style={{ background: 'var(--bg-input)', padding: 10, borderRadius: 4, border: '1px solid var(--border-subtle)' }}>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-charcoal)', fontWeight: 700, marginBottom: 4 }}>
+                PACKET IDENTIFIER
+              </div>
+              <div className="mono" style={{ fontSize: 12, fontWeight: 700, color: 'var(--c-sand)' }}>
                 {packetData.packet_id}
               </div>
             </div>
-            <div style={{ background: 'var(--bg-input)', padding: 10, borderRadius: 6, border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>TARGET VASP RECIPIENT</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ background: 'var(--bg-input)', padding: 10, borderRadius: 4, border: '1px solid var(--border-subtle)' }}>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-charcoal)', fontWeight: 700, marginBottom: 4 }}>
+                TARGET VASP RECIPIENT
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-oyster)' }}>
                 {packetData.attributed_vasp}
               </div>
             </div>
-            <div style={{ background: 'var(--bg-input)', padding: 10, borderRadius: 6, border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>TERMINAL DEPOSIT WALLET</div>
-              <div className="mono" style={{ fontSize: 11, color: 'var(--accent-green)' }}>
+            <div style={{ background: 'var(--bg-input)', padding: 10, borderRadius: 4, border: '1px solid var(--border-subtle)' }}>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-charcoal)', fontWeight: 700, marginBottom: 4 }}>
+                TERMINAL DEPOSIT WALLET
+              </div>
+              <div className="mono" style={{ fontSize: 11, color: 'var(--c-sand)' }}>
                 {packetData.terminal_deposit_address || 'Identified in flow'}
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
-                className={`nav-button ${activeNoticeTab === 'PRESERVATION' ? 'active' : ''}`}
+                className={`tool-btn ${activeNoticeTab === 'PRESERVATION' ? 'active' : ''}`}
                 onClick={() => setActiveNoticeTab('PRESERVATION')}
               >
                 Urgent Preservation Notice (Sec 91 CrPC)
               </button>
               <button
-                className={`nav-button ${activeNoticeTab === 'DISCLOSURE' ? 'active' : ''}`}
+                className={`tool-btn ${activeNoticeTab === 'DISCLOSURE' ? 'active' : ''}`}
                 onClick={() => setActiveNoticeTab('DISCLOSURE')}
               >
                 Formal Disclosure Requisition
               </button>
             </div>
-            <button className="copy-badge-btn" onClick={handleCopyNotice}>
+            <button className="tool-btn" onClick={handleCopyNotice}>
               {copied ? 'Copied to Clipboard!' : 'Copy Notice Text'}
             </button>
           </div>
@@ -98,10 +108,11 @@ export const ActionPacketModal: React.FC<Props> = ({ isOpen, onClose, packetData
           <pre style={{
             background: 'var(--bg-input)',
             padding: 14,
-            borderRadius: 6,
-            border: '1px solid var(--border-color)',
+            borderRadius: 4,
+            border: '1px solid var(--border-subtle)',
             fontSize: 12,
             lineHeight: 1.6,
+            color: 'var(--c-oyster)',
             whiteSpace: 'pre-wrap',
             maxHeight: 320,
             overflowY: 'auto'
@@ -111,10 +122,10 @@ export const ActionPacketModal: React.FC<Props> = ({ isOpen, onClose, packetData
         </div>
 
         <div className="modal-footer">
-          <button className="btn-secondary" onClick={onClose}>
+          <button className="btn-secondary-action" onClick={onClose}>
             Close
           </button>
-          <button className="btn-primary" onClick={handleCopyNotice}>
+          <button className="btn-trace" onClick={handleCopyNotice}>
             {copied ? 'Copied!' : 'Copy Notice Draft to Clipboard'}
           </button>
         </div>

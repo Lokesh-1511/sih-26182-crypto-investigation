@@ -266,17 +266,17 @@ export const App: React.FC = () => {
 
             {reportResult && (
               <div className="panel-card" style={{ padding: 20, marginBottom: 16 }}>
-                <div className="panel-title" style={{ color: 'var(--accent-emerald)', marginBottom: 10 }}>
+                <div className="panel-title" style={{ color: 'var(--c-sand)', marginBottom: 10 }}>
                   ✓ Cryptographically Sealed Forensic Report Generated
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, fontSize: 12 }}>
                   <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Case Reference:</span>
+                    <span style={{ color: 'var(--c-charcoal)' }}>Case Reference:</span>
                     <div className="mono" style={{ fontWeight: 600 }}>{reportResult.case_id}</div>
                   </div>
                   <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Tamper-Evident SHA-256 Digest:</span>
-                    <div className="mono" style={{ color: 'var(--accent-emerald)', wordBreak: 'break-all' }}>
+                    <span style={{ color: 'var(--c-charcoal)' }}>Tamper-Evident SHA-256 Digest:</span>
+                    <div className="mono" style={{ color: 'var(--c-sand)', wordBreak: 'break-all' }}>
                       {reportResult.report_hash}
                     </div>
                   </div>
@@ -381,7 +381,7 @@ export const App: React.FC = () => {
                 <tbody>
                   {filteredCases.map((c) => (
                     <tr key={c.case_id}>
-                      <td className="mono" style={{ fontWeight: 600, color: 'var(--accent-blue)' }}>
+                      <td className="mono" style={{ fontWeight: 600, color: 'var(--c-sand)' }}>
                         {c.case_id}
                       </td>
                       <td style={{ fontWeight: 500 }}>{c.title}</td>
@@ -391,7 +391,7 @@ export const App: React.FC = () => {
                           {c.chain || 'ETH'}
                         </span>
                       </td>
-                      <td className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      <td className="mono" style={{ fontSize: 11, color: 'var(--c-steel)' }}>
                         {c.suspect_wallet ? `${c.suspect_wallet.slice(0, 8)}...${c.suspect_wallet.slice(-6)}` : 'N/A'}
                       </td>
                       <td>
@@ -400,7 +400,7 @@ export const App: React.FC = () => {
                         </span>
                       </td>
                       <td>
-                        <span style={{ fontSize: 11, color: 'var(--accent-emerald)', fontWeight: 600 }}>
+                        <span style={{ fontSize: 11, color: 'var(--c-sand)', fontWeight: 600 }}>
                           ● {c.status}
                         </span>
                       </td>
