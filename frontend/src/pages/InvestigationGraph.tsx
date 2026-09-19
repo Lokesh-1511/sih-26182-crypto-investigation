@@ -5,50 +5,53 @@ import { GraphData } from '../services/api';
 
 interface Props {
   graphData: GraphData;
+  theme?: 'light' | 'dark';
 }
 
-export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
+export const InvestigationGraph: React.FC<Props> = ({ graphData, theme = 'light' }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [layoutMode, setLayoutMode] = useState<'breadthfirst' | 'cose'>('breadthfirst');
   const [copied, setCopied] = useState(false);
 
+  const isDark = theme === 'dark';
+
   useEffect(() => {
     if (!containerRef.current) return;
 
     const elements: cytoscape.ElementDefinition[] = [];
 
-    // Map Nodes with Custom Austere Forensic Palette
+    // Map Nodes with Palette-aligned geometry and color
     graphData.nodes.forEach((n) => {
-      let bg = '#191b22'; // Intermediary / Transit
-      let border = '#4e5166';
+      let bg = isDark ? '#222427' : '#ffffff';
+      let border = isDark ? '#546a7b' : '#c6c5b9';
       let shape: cytoscape.Css.NodeShape = 'ellipse';
       let size = 32;
 
       if (n.node_type === 'SUSPECT') {
-        bg = '#2c1b1f';
-        border = '#a65252';
+        bg = isDark ? '#361e22' : '#fdeded';
+        border = isDark ? '#cf5e5e' : '#ba4747';
         shape = 'round-rectangle';
         size = 36;
       } else if (n.node_type === 'VASP_DEPOSIT') {
-        bg = '#25221c';
-        border = '#b5aa9d';
+        bg = isDark ? '#1a272c' : '#f0f7f8';
+        border = '#62929e';
         shape = 'hexagon';
         size = 36;
       } else if (n.node_type === 'VASP_HOT') {
-        bg = '#1e242d';
-        border = '#7c90a0';
+        bg = isDark ? '#222d35' : '#eaf2f5';
+        border = '#546a7b';
         shape = 'round-rectangle';
         size = 40;
       } else if (n.node_type === 'MIXER') {
-        bg = '#29252c';
-        border = '#747274';
+        bg = isDark ? '#26282a' : '#f3f2ee';
+        border = isDark ? '#c6c5b9' : '#393d3f';
         shape = 'octagon';
         size = 36;
       } else if (n.node_type === 'BRIDGE') {
-        bg = '#1e262c';
-        border = '#7c90a0';
+        bg = isDark ? '#1f272c' : '#eff4f6';
+        border = '#62929e';
         shape = 'diamond';
         size = 36;
       }
@@ -106,14 +109,14 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
             'width': 'data(nodeSize)',
             'height': 'data(nodeSize)',
             'label': 'data(label)',
-            'color': '#b9b7a7',
+            'color': isDark ? '#fdfdff' : '#393d3f',
             'font-size': '11px',
             'font-family': 'JetBrains Mono, monospace',
             'font-weight': 600,
             'text-valign': 'bottom',
             'text-margin-y': 6,
-            'text-background-opacity': 0.85,
-            'text-background-color': '#121318',
+            'text-background-opacity': 0.88,
+            'text-background-color': isDark ? '#18191b' : '#ffffff',
             'text-background-padding': '2px',
             'text-background-shape': 'roundrectangle'
           }
@@ -121,7 +124,7 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
         {
           selector: 'node[?isBreakpoint]',
           style: {
-            'border-color': '#a65252',
+            'border-color': isDark ? '#cf5e5e' : '#ba4747',
             'border-width': 3,
             'border-opacity': 1
           }
@@ -129,7 +132,7 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
         {
           selector: 'node:selected',
           style: {
-            'border-color': '#b5aa9d',
+            'border-color': '#62929e',
             'border-width': 3,
             'border-opacity': 1
           }
@@ -138,18 +141,18 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
           selector: 'edge',
           style: {
             'width': 2,
-            'line-color': '#3b3f4f',
-            'target-arrow-color': '#7c90a0',
+            'line-color': isDark ? '#393d3f' : '#c6c5b9',
+            'target-arrow-color': '#62929e',
             'target-arrow-shape': 'triangle',
             'arrow-scale': 1.1,
             'curve-style': 'bezier',
             'label': 'data(label)',
             'font-size': '10px',
             'font-family': 'JetBrains Mono, monospace',
-            'font-weight': 500,
-            'color': '#b5aa9d',
+            'font-weight': 600,
+            'color': isDark ? '#c6c5b9' : '#546a7b',
             'text-background-opacity': 0.9,
-            'text-background-color': '#181a22',
+            'text-background-color': isDark ? '#222427' : '#ffffff',
             'text-background-padding': '3px',
             'text-background-shape': 'roundrectangle',
             'text-rotation': 'autorotate'
@@ -158,10 +161,10 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
         {
           selector: 'edge:selected',
           style: {
-            'line-color': '#b5aa9d',
-            'target-arrow-color': '#b5aa9d',
+            'line-color': '#62929e',
+            'target-arrow-color': '#62929e',
             'width': 2.5,
-            'color': '#f5f4f0'
+            'color': isDark ? '#fdfdff' : '#393d3f'
           }
         }
       ],
@@ -199,7 +202,7 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
     return () => {
       cy.destroy();
     };
-  }, [graphData, layoutMode]);
+  }, [graphData, layoutMode, isDark]);
 
   const handleFit = () => {
     cyRef.current?.fit(undefined, 30);
@@ -219,11 +222,10 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Check if any node in graph is a breakpoint
   const hasBreakpoint = graphData.nodes.some((n) => n.is_breakpoint);
 
   return (
-    <div className="panel-card">
+    <div className="card-box">
       {/* Graph Toolbar */}
       <div className="graph-toolbar">
         <div className="toolbar-group">
@@ -246,75 +248,72 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
             +
           </button>
           <button className="tool-btn" onClick={handleZoomOut}>
-            −
+            -
           </button>
         </div>
 
-        <div className="legend-pills">
-          <div className="legend-item">
-            <span className="legend-dot suspect"></span> Suspect
-          </div>
-          <div className="legend-item">
-            <span className="legend-dot intermediary"></span> Transit
-          </div>
-          <div className="legend-item">
-            <span className="legend-dot deposit"></span> Deposit
-          </div>
-          <div className="legend-item">
-            <span className="legend-dot hot"></span> VASP Hub
-          </div>
-          <div className="legend-item">
-            <span className="legend-dot mixer"></span> Mixer/Bridge
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 11, color: 'var(--text-muted)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: isDark ? '#cf5e5e' : '#ba4747' }}></span> Suspect
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: '#62929e' }}></span> Deposit
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: '#546a7b' }}></span> VASP Hub
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: isDark ? '#c6c5b9' : '#393d3f' }}></span> Mixer
+          </span>
         </div>
       </div>
 
       {/* Cytoscape Canvas Container */}
-      <div className="graph-canvas-container" ref={containerRef} />
+      <div className="graph-canvas" ref={containerRef} />
 
       {/* Obfuscation Breakpoint Alert Bar */}
       {hasBreakpoint && (
-        <div className="breakpoint-alert-strip">
+        <div className="alert-strip">
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span className="breakpoint-badge">⚠️ Obfuscation Breakpoint Flagged</span>
-            <span className="breakpoint-text">
-              Topological anomaly detected at transit hop: rapid fan-out / layering detected.
+            <span className="alert-badge">BREAKPOINT DETECTED</span>
+            <span className="alert-desc">
+              Topological anomaly at transit hop: rapid fan-out or mixer layer identified.
             </span>
           </div>
-          <span style={{ fontSize: 11, color: 'var(--sig-critical)', fontFamily: 'var(--font-mono)' }}>
-            CHOKEPOINT_ID: BRK-02
+          <span style={{ fontSize: 11, color: 'var(--sig-critical)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+            CHOKEPOINT: BRK-02
           </span>
         </div>
       )}
 
       {/* Interactive Node Inspector Drawer */}
       {selectedNode && (
-        <div className="node-inspector-drawer">
+        <div className="inspector-drawer">
           <div>
-            <div className="inspector-field-label">Selected Address</div>
-            <div className="inspector-field-val" title={selectedNode.address}>
+            <div className="inspector-label">Selected Address</div>
+            <div className="inspector-val" title={selectedNode.address}>
               {selectedNode.address}
             </div>
           </div>
           <div>
-            <div className="inspector-field-label">Entity Classification</div>
-            <div className="inspector-field-val" style={{ color: 'var(--c-sand)' }}>
+            <div className="inspector-label">Entity Classification</div>
+            <div className="inspector-val" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
               {selectedNode.entity_name} ({selectedNode.type})
             </div>
           </div>
           <div>
-            <div className="inspector-field-label">Flow Connections</div>
-            <div className="inspector-field-val">
-              In: {selectedNode.inDegree} | Out: {selectedNode.outDegree}
+            <div className="inspector-label">Connections</div>
+            <div className="inspector-val">
+              Inbound: {selectedNode.inDegree} | Outbound: {selectedNode.outDegree}
             </div>
           </div>
           <div>
             <button
-              className="btn-secondary-action"
-              style={{ fontSize: 11, padding: '3px 8px' }}
+              className="btn-secondary"
+              style={{ fontSize: 11, padding: '4px 10px' }}
               onClick={() => handleCopyAddress(selectedNode.address)}
             >
-              {copied ? 'Copied!' : 'Copy Address'}
+              {copied ? 'Copied' : 'Copy Address'}
             </button>
           </div>
         </div>
@@ -322,3 +321,4 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData }) => {
     </div>
   );
 };
+export default InvestigationGraph;
