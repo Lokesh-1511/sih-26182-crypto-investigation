@@ -28,7 +28,7 @@ def get_case_graph(
     chain = Chain(case_model.chain or "ETH")
 
     # Ingest transfers from DB or fixture cache
-    db_transfers = db.query(TransferModel).all()
+    db_transfers = db.query(TransferModel).filter_by(case_id=case_id).all()
     transfers = []
     if db_transfers:
         for tr in db_transfers:
@@ -41,10 +41,9 @@ def get_case_graph(
                 hop_distance=tr.hop_distance
             ))
     else:
-        # Fallback to fixture cache
+        # Isolated fixture transfers for this specific case
         prov = FixtureBlockchainProvider()
-        for tx in prov._cache.values():
-            transfers.extend(tx.transfers)
+        transfers = prov.get_case_transfers(case_id, chain, suspect_wallet)
 
     resolver = EntityResolver()
     node_labels = {}

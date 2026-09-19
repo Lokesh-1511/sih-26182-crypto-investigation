@@ -21,7 +21,7 @@ def get_case_risk(case_id: str, db: Session = Depends(get_db)):
     suspect_wallet = case_model.suspect_wallet or "0x71C83e20e8F468a3E282241F8C936f4521487439"
     chain = Chain(case_model.chain or "ETH")
 
-    db_transfers = db.query(TransferModel).all()
+    db_transfers = db.query(TransferModel).filter_by(case_id=case_id).all()
     transfers = []
     if db_transfers:
         for tr in db_transfers:
@@ -35,8 +35,7 @@ def get_case_risk(case_id: str, db: Session = Depends(get_db)):
             ))
     else:
         prov = FixtureBlockchainProvider()
-        for tx in prov._cache.values():
-            transfers.extend(tx.transfers)
+        transfers = prov.get_case_transfers(case_id, chain, suspect_wallet)
 
     builder = GraphBuilder()
     graph_data = builder.build_from_transfers(

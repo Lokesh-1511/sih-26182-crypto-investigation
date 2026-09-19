@@ -24,11 +24,19 @@ class FixtureBlockchainProvider(BlockchainProvider):
         self.transactions_dir = os.path.join(self.fixtures_dir, "transactions")
         self.cases_dir = os.path.join(self.fixtures_dir, "cases")
         self._cache: Dict[str, NormalizedTransaction] = {}
+        self._case_transfers: Dict[str, List[NormalizedTransfer]] = {}
         self._load_fixtures()
 
     def _load_fixtures(self):
         if not os.path.exists(self.transactions_dir):
             return
+
+        # Case mapping dictionary
+        file_to_case_map = {
+            "case_a_transactions.json": ["CASE-2026-001A", "case_a", "CASE_A"],
+            "case_b_transactions.json": ["CASE-2026-002B", "case_b", "CASE_B"],
+            "case_c_transactions.json": ["CASE-2026-003C", "case_c", "CASE_C"]
+        }
 
         for fname in os.listdir(self.transactions_dir):
             if fname.endswith(".json"):
@@ -36,18 +44,24 @@ class FixtureBlockchainProvider(BlockchainProvider):
                 try:
                     with open(fpath, "r", encoding="utf-8") as f:
                         data = json.load(f)
-                        if isinstance(data, list):
-                            for item in data:
-                                self._index_transaction(item)
-                        elif isinstance(data, dict):
-                            self._index_transaction(data)
+                        raw_items = data if isinstance(data, list) else [data]
+                        file_transfers: List[NormalizedTransfer] = []
+                        for item in raw_items:
+                            tx_obj = self._index_transaction(item)
+                            if tx_obj and tx_obj.transfers:
+                                file_transfers.extend(tx_obj.transfers)
+
+                        # Associate transfers with known case aliases
+                        aliases = file_to_case_map.get(fname, [fname.replace(".json", "")])
+                        for alias in aliases:
+                            self._case_transfers[alias] = file_transfers
                 except Exception as e:
                     print(f"Error loading fixture {fname}: {e}")
 
-    def _index_transaction(self, item: Dict[str, Any]):
+    def _index_transaction(self, item: Dict[str, Any]) -> Optional[NormalizedTransaction]:
         tx_id = item.get("tx_id")
         if not tx_id:
-            return
+            return None
         
         # Parse transfers if present
         transfers = []
@@ -83,6 +97,47 @@ class FixtureBlockchainProvider(BlockchainProvider):
             transfers=transfers
         )
         self._cache[tx_id.lower()] = tx_obj
+        return tx_obj
+
+    def get_case_transfers(
+        self,
+        case_id: str,
+        chain: Optional[Chain] = None,
+        suspect_wallet: Optional[str] = None
+    ) -> List[NormalizedTransfer]:
+        """
+        Retrieves transfers strictly isolated to a specific investigation case.
+        Prevents cross-case and cross-chain pollution in graph and attribution models.
+        """
+        if case_id in self._case_transfers:
+            return self._case_transfers[case_id]
+
+        # Case-insensitive / prefix matching
+        for k, v in self._case_transfers.items():
+            if k.lower() in case_id.lower() or case_id.lower() in k.lower():
+                return v
+
+        # Fallback: filter by chain and suspect wallet reachability
+        if chain:
+            transfers = [t for tx in self._cache.values() if tx.chain == chain for t in tx.transfers]
+            if suspect_wallet:
+                target_lower = suspect_wallet.lower()
+                connected_addrs = {target_lower}
+                for _ in range(5):
+                    new_addrs = set()
+                    for t in transfers:
+                        if t.from_address.lower() in connected_addrs:
+                            new_addrs.add(t.to_address.lower())
+                    if not (new_addrs - connected_addrs):
+                        break
+                    connected_addrs.update(new_addrs)
+                
+                filtered = [t for t in transfers if t.from_address.lower() in connected_addrs or t.to_address.lower() in connected_addrs]
+                if filtered:
+                    return filtered
+            return transfers
+
+        return [t for tx in self._cache.values() for t in tx.transfers]
 
     def get_wallet_transactions(
         self, address: str, chain: Chain, limit: int = 50

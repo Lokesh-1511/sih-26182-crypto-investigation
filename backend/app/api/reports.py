@@ -22,8 +22,9 @@ def export_report(case_id: str, db: Session = Depends(get_db)):
 
     attr = _compute_case_attribution(case_id, db)
     prov = FixtureBlockchainProvider()
-    transfers = [t for tx in prov._cache.values() for t in tx.transfers]
     chain = Chain(case_model.chain or "ETH")
+    suspect_wallet = case_model.suspect_wallet or ""
+    transfers = prov.get_case_transfers(case_id, chain, suspect_wallet)
     builder = GraphBuilder()
     graph_data = builder.build_from_transfers(case_id, case_model.suspect_wallet or "", chain, transfers)
     risk_summary = RiskTypologyEngine.analyze_graph(graph_data)

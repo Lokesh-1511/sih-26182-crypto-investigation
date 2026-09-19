@@ -22,7 +22,7 @@ def _compute_case_attribution(case_id: str, db: Session) -> AttributionResponse:
     chain = Chain(case_model.chain or "ETH")
 
     # Ingest transfers from DB or fixture cache
-    db_transfers = db.query(TransferModel).all()
+    db_transfers = db.query(TransferModel).filter_by(case_id=case_id).all()
     transfers = []
     if db_transfers:
         for tr in db_transfers:
@@ -36,8 +36,7 @@ def _compute_case_attribution(case_id: str, db: Session) -> AttributionResponse:
             ))
     else:
         prov = FixtureBlockchainProvider()
-        for tx in prov._cache.values():
-            transfers.extend(tx.transfers)
+        transfers = prov.get_case_transfers(case_id, chain, suspect_wallet)
 
     resolver = EntityResolver()
     node_labels = {}
