@@ -14,6 +14,8 @@ import {
 } from './services/api';
 import { InvestigationGraph } from './pages/InvestigationGraph';
 import { ExplainableCard } from './components/ExplainableCard';
+import { ReportModal } from './components/ReportModal';
+import { ActionPacketModal } from './components/ActionPacketModal';
 
 export const App: React.FC = () => {
   const [cases, setCases] = useState<CaseData[]>([]);
@@ -24,6 +26,8 @@ export const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [reportResult, setReportResult] = useState<any>(null);
   const [actionPacket, setActionPacket] = useState<any>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -55,14 +59,32 @@ export const App: React.FC = () => {
   };
 
   const handleExportReport = async () => {
-    const res = await exportReport(activeCaseId);
-    setReportResult(res);
+    setLoading(true);
+    try {
+      const res = await exportReport(activeCaseId);
+      setReportResult(res);
+      setIsReportModalOpen(true);
+    } catch (err) {
+      console.error('Error generating report:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGenerateActionPacket = async () => {
-    const res = await generateActionPacket(activeCaseId);
-    setActionPacket(res);
+    setLoading(true);
+    try {
+      const res = await generateActionPacket(activeCaseId);
+      setActionPacket(res);
+      setIsActionModalOpen(true);
+    } catch (err) {
+      console.error('Error generating action packet:', err);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const activeCase = cases.find((c) => c.case_id === activeCaseId);
 
   return (
     <div className="app-container">
@@ -98,20 +120,33 @@ export const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="content-area">
-        {/* Active Case Banner */}
-        <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
+        {/* Active Case Banner with Quick Case Selector */}
+        <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 280 }}>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>ACTIVE CASE REFERENCE</div>
-            <h3 style={{ fontSize: 18, color: 'var(--accent-blue)' }}>
-              {activeCaseId} — Operation Layered Phish (ETH)
+            <h3 style={{ fontSize: 18, color: 'var(--accent-blue)', margin: '2px 0 4px 0' }}>
+              {activeCase ? `${activeCase.case_id} — ${activeCase.title}` : activeCaseId}
             </h3>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              Suspect Wallet: <code className="mono">0x71C83e20e8F468a3E282241F8C936f4521487439</code> | Investigator: SI Ananya Sharma
+              Suspect Wallet: <code className="mono">{activeCase?.suspect_wallet || 'N/A'}</code> ({activeCase?.chain || 'ETH'}) | Investigator: {activeCase?.investigator || 'Officer'}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <select
+              className="input-field"
+              style={{ width: 'auto', minWidth: 220, cursor: 'pointer' }}
+              value={activeCaseId}
+              onChange={(e) => setActiveCaseId(e.target.value)}
+            >
+              {cases.map((c) => (
+                <option key={c.case_id} value={c.case_id}>
+                  {c.case_id} ({c.chain || 'ETH'}) - {c.title.slice(0, 20)}...
+                </option>
+              ))}
+            </select>
             <button className="btn-primary" onClick={handleStartTrace} disabled={loading}>
-              {loading ? 'Analyzing...' : 'Start Multi-Hop Trace'}
+              {loading ? 'Analyzing...' : '⚡ Run Multi-Hop Trace'}
             </button>
           </div>
         </div>
@@ -135,7 +170,13 @@ export const App: React.FC = () => {
             </div>
 
             <div>
-              {attribution && <ExplainableCard attribution={attribution} />}
+              {attribution && (
+                <ExplainableCard
+                  attribution={attribution}
+                  onOpenReport={handleExportReport}
+                  onOpenActionPacket={handleGenerateActionPacket}
+                />
+              )}
             </div>
           </div>
         )}
@@ -226,6 +267,20 @@ export const App: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Forensic Report Modal */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        reportData={reportResult}
+      />
+
+      {/* Lawful Action Packet Modal */}
+      <ActionPacketModal
+        isOpen={isActionModalOpen}
+        onClose={() => setIsActionModalOpen(false)}
+        packetData={actionPacket}
+      />
     </div>
   );
 };

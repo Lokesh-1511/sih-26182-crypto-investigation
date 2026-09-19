@@ -4,9 +4,11 @@ import { AttributionData } from '../services/api';
 
 interface Props {
   attribution: AttributionData;
+  onOpenReport?: () => void;
+  onOpenActionPacket?: () => void;
 }
 
-export const ExplainableCard: React.FC<Props> = ({ attribution }) => {
+export const ExplainableCard: React.FC<Props> = ({ attribution, onOpenReport, onOpenActionPacket }) => {
   const [showCounterfactual, setShowCounterfactual] = useState(false);
   const cand = attribution.top_candidate;
 
@@ -110,6 +112,20 @@ export const ExplainableCard: React.FC<Props> = ({ attribution }) => {
           </table>
         </div>
       )}
+
+      {/* Forensic Actions */}
+      <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+        {onOpenReport && (
+          <button className="btn-secondary" style={{ flex: 1 }} onClick={onOpenReport}>
+            📄 Export Forensic Report
+          </button>
+        )}
+        {onOpenActionPacket && (
+          <button className="btn-primary" style={{ flex: 1 }} onClick={onOpenActionPacket}>
+            ⚖️ Draft Sec 91 CrPC Notice
+          </button>
+        )}
+      </div>
     </div>
   );
 };

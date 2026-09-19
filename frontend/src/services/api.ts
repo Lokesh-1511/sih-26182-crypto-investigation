@@ -57,6 +57,10 @@ export interface AttributionData {
       description: string;
       supporting_tx_ids: string[];
     }>;
+    shortest_path_hops?: number;
+    terminal_deposit_address?: string;
+    hot_wallet_cluster?: string;
+    uncertainty_penalties?: number;
     counterfactuals?: Array<{
       factor_removed: string;
       original_score: number;

@@ -42,10 +42,13 @@ app.include_router(evidence_router, prefix="/api")
 app.include_router(reports_router, prefix="/api")
 app.include_router(entities_router, prefix="/api")
 
+@app.get("/health", tags=["Health"])
 @app.get("/api/health", tags=["Health"])
 def health_check():
     return {
         "status": "HEALTHY",
+        "mode": "MODE_1_FIXTURE",
+        "database": "connected",
         "service": "crypto-investigation-copilot",
         "version": "1.0.0",
         "ingestion_mode": os.getenv("DATA_SOURCE_MODE", "OFFLINE_FIXTURE"),
