@@ -6,9 +6,10 @@ import { GraphData } from '../services/api';
 interface Props {
   graphData: GraphData;
   theme?: 'light' | 'dark';
+  caseId?: string;
 }
 
-export const InvestigationGraph: React.FC<Props> = ({ graphData, theme = 'light' }) => {
+export const InvestigationGraph: React.FC<Props> = ({ graphData, theme = 'light', caseId }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const [selectedNode, setSelectedNode] = useState<any>(null);
@@ -199,7 +200,18 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData, theme = 'light'
 
     cyRef.current = cy;
 
+    const resizeObserver = new ResizeObserver(() => {
+      if (cyRef.current) {
+        cyRef.current.resize();
+      }
+    });
+
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
     return () => {
+      resizeObserver.disconnect();
       cy.destroy();
     };
   }, [graphData, layoutMode, isDark]);
@@ -229,6 +241,14 @@ export const InvestigationGraph: React.FC<Props> = ({ graphData, theme = 'light'
       {/* Graph Toolbar */}
       <div className="graph-toolbar">
         <div className="toolbar-group">
+          <span style={{ fontWeight: 800, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-primary)', marginRight: 4 }}>
+            Map Explorer
+          </span>
+          {caseId && (
+            <span className="case-badge-pill" style={{ fontSize: 10, padding: '1px 6px', marginRight: 6 }}>
+              {caseId}
+            </span>
+          )}
           <button
             className={`tool-btn ${layoutMode === 'breadthfirst' ? 'active' : ''}`}
             onClick={() => setLayoutMode('breadthfirst')}
