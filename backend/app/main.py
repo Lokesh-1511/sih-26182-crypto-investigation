@@ -11,7 +11,8 @@ from .api import (
     risk_router,
     evidence_router,
     reports_router,
-    entities_router
+    entities_router,
+    investigations_router
 )
 
 # Initialize database tables on startup
@@ -32,7 +33,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount Routers under /api
+# Mount Routers
+app.include_router(investigations_router, prefix="/api/v1")
+app.include_router(investigations_router, prefix="/api")
 app.include_router(cases_router, prefix="/api")
 app.include_router(tracing_router, prefix="/api")
 app.include_router(graph_router, prefix="/api")

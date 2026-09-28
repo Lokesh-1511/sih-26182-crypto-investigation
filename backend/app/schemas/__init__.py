@@ -7,3 +7,4 @@ from .risk import RiskFinding, RiskTypologySummary
 from .case import CaseCreate, CaseUpdate, CaseResponse, TraceProgressStatus
 from .evidence import EvidenceItem, EvidenceDrilldown
 from .snapshot import InvestigationSnapshot, LawfulActionPacket
+from .investigation import InvestigationCreateRequest, InvestigationResponse, InvestigationSummary
