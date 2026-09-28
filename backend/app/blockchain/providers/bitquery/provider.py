@@ -325,7 +325,9 @@ class BitqueryProvider(BlockchainProvider):
     def capabilities(self) -> ProviderCapabilities:
         """
         Capabilities of this BitqueryProvider instance for Ethereum Mainnet.
-        Note: Queries Bitquery realtime dataset (rolling window), so supports_historical_data is False.
+        Note:
+        - supports_historical_data=False: Operates on Bitquery realtime rolling window.
+        - supports_internal_transfers=True: Returns internal contract value movements (Transfer.Type='call') from EVM.Transfers.
         """
         return ProviderCapabilities(
             chains=[Chain.ETHEREUM],
@@ -334,5 +336,5 @@ class BitqueryProvider(BlockchainProvider):
             supports_token_metadata=True,
             supports_blocks=True,
             supports_historical_data=False,
-            supports_internal_transfers=False
+            supports_internal_transfers=True
         )

@@ -1,4 +1,5 @@
 # backend/app/schemas/graph.py
+from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional, Dict, Any, Union
 from pydantic import BaseModel, Field, model_validator
@@ -26,23 +27,67 @@ class GraphNode(BaseModel):
     metadata: Dict[str, Any] = {}
 
 class GraphEdge(BaseModel):
-    id: str
-    source: str
-    target: str
-    tx_id: str
-    asset: str
+    id: str = Field(..., description="Unique edge / transfer identifier")
+    transfer_id: str = Field(..., description="Deterministic transfer identifier")
+    tx_hash: str = Field(..., description="On-chain transaction hash")
+    source: str = Field(..., description="Source address (lowercased/normalized)")
+    target: str = Field(..., description="Target address (lowercased/normalized)")
+    asset_id: str = Field(..., description="Asset identifier (e.g. 'ETH', token contract address)")
+    asset_symbol: str = Field(..., description="Asset ticker symbol (e.g. 'ETH', 'USDT')")
     amount: Decimal = Field(..., description="Exact transfer amount in Decimal")
-    timestamp: str
-    edge_type: str = "TRANSFER"  # TRANSFER, SWEEP, BRIDGE_ROUTE
-    hop: int = 1
+    timestamp: Optional[str] = Field(None, description="ISO-formatted timestamp of transfer")
+    transfer_type: str = Field(default="NATIVE", description="Transfer mechanism: NATIVE, TOKEN, INTERNAL, UTXO_INPUT, UTXO_OUTPUT")
+    edge_type: str = Field(default="TRANSFER", description="Forensic edge categorization: TRANSFER, SWEEP, BRIDGE_ROUTE")
+    hop: int = Field(default=1, description="Hop distance from suspect/root")
+    evidence_ref: Optional[str] = Field(None, description="Pointer to supporting on-chain evidence")
 
     @model_validator(mode="before")
     @classmethod
-    def _coerce_amount_to_decimal(cls, data: Any) -> Any:
-        if isinstance(data, dict) and "amount" in data:
-            if not isinstance(data["amount"], Decimal):
+    def _coerce_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            # Compatibility with legacy tx_id -> tx_hash
+            if "tx_hash" not in data and "tx_id" in data:
+                data["tx_hash"] = data["tx_id"]
+            elif "tx_hash" in data and "tx_id" not in data:
+                data["tx_id"] = data["tx_hash"]
+
+            # Compatibility with legacy asset -> asset_symbol
+            if "asset_symbol" not in data and "asset" in data:
+                data["asset_symbol"] = data["asset"]
+            elif "asset_symbol" in data and "asset" not in data:
+                data["asset"] = data["asset_symbol"]
+            elif "asset_symbol" not in data and "asset" not in data:
+                data["asset_symbol"] = "ETH"
+                data["asset"] = "ETH"
+
+            if "asset_id" not in data:
+                data["asset_id"] = data.get("asset_symbol", "ETH")
+
+            # transfer_id vs id
+            if "transfer_id" not in data and "id" in data:
+                data["transfer_id"] = data["id"]
+            elif "transfer_id" in data and "id" not in data:
+                data["id"] = data["transfer_id"]
+            elif "transfer_id" not in data and "id" not in data:
+                tx_ref = data.get("tx_hash", "tx")
+                idx = data.get("transfer_index", 0)
+                data["transfer_id"] = f"{tx_ref}_{idx}"
+                data["id"] = data["transfer_id"]
+
+            if "amount" in data and not isinstance(data["amount"], Decimal):
                 data["amount"] = Decimal(str(data["amount"]))
+
         return data
+
+    @property
+    def tx_id(self) -> str:
+        """Compatibility property for legacy consumers."""
+        return self.tx_hash
+
+    @property
+    def asset(self) -> str:
+        """Compatibility property for legacy consumers."""
+        return self.asset_symbol
 
     @property
     def amount_float(self) -> float:

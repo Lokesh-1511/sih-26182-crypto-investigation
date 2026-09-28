@@ -10,10 +10,10 @@ from backend.app.blockchain.models.enums import Chain, TransferDirection
 from backend.app.blockchain.providers.bitquery.provider import BitqueryProvider
 from backend.app.blockchain.ingestion.collector import TransactionCollector
 
-# Skip if BITQUERY_ACCESS_TOKEN is not configured
+# Skip unless explicitly enabled with RUN_LIVE_BITQUERY=1 and token is available
 pytestmark = pytest.mark.skipif(
-    not os.getenv("BITQUERY_ACCESS_TOKEN"),
-    reason="BITQUERY_ACCESS_TOKEN environment variable is not configured for live integration test"
+    os.getenv("RUN_LIVE_BITQUERY") != "1" or not os.getenv("BITQUERY_ACCESS_TOKEN"),
+    reason="Live Bitquery test is opt-in. Set RUN_LIVE_BITQUERY=1 and BITQUERY_ACCESS_TOKEN to execute live queries."
 )
 
 @pytest.mark.anyio

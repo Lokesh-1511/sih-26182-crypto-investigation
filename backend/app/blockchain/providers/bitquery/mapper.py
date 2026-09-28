@@ -53,17 +53,41 @@ class BitqueryEVMMapper:
     def map_transfers(cls, raw_transfers: List[Dict[str, Any]]) -> List[NormalizedTransfer]:
         """
         Maps a list of raw Bitquery EVM transfer records into NormalizedTransfer objects,
-        tracking occurrence counts per transaction hash to guarantee unique, deterministic transfer IDs.
+        tracking occurrence counts per unique (tx_hash, loc_key) to guarantee unique, deterministic transfer IDs.
         """
         results: List[NormalizedTransfer] = []
-        tx_transfer_counts: Dict[str, int] = {}
+        seen_keys: Dict[str, int] = {}
         for item in raw_transfers:
             tx_info = item.get("Transaction", {}) or {}
-            tx_hash = tx_info.get("Hash") or item.get("tx_hash", "")
-            tx_h_lower = tx_hash.lower()
-            sub_idx = tx_transfer_counts.get(tx_h_lower, 0)
-            tx_transfer_counts[tx_h_lower] = sub_idx + 1
-            t = cls.map_transfer(item, fallback_index=sub_idx)
+            tx_hash = (tx_info.get("Hash") or item.get("tx_hash", "")).lower()
+
+            log_obj = item.get("Log") or {}
+            log_idx = log_obj.get("Index") if isinstance(log_obj, dict) else None
+
+            call_obj = item.get("Call") or {}
+            call_idx = call_obj.get("Index") if isinstance(call_obj, dict) else None
+
+            transfer_info = item.get("Transfer", {}) or {}
+            t_id = transfer_info.get("Id")
+            t_idx_raw = transfer_info.get("Index")
+            t_type_raw = str(transfer_info.get("Type") or "").lower()
+
+            if log_idx is not None:
+                base_key = f"log_{log_idx}"
+            elif call_idx is not None:
+                base_key = f"call_{call_idx}"
+            elif t_id and str(t_id).strip() not in ("", "None", "0"):
+                base_key = str(t_id)
+            elif t_idx_raw is not None:
+                base_key = f"{t_type_raw or 't'}_{t_idx_raw}"
+            else:
+                base_key = f"{t_type_raw or 't'}_0"
+
+            composite_key = f"{tx_hash}:{base_key}"
+            count = seen_keys.get(composite_key, 0)
+            seen_keys[composite_key] = count + 1
+
+            t = cls.map_transfer(item, fallback_index=count)
             results.append(t)
         return results
 
@@ -104,31 +128,39 @@ class BitqueryEVMMapper:
         
         raw_amount_str = to_raw_amount(norm_amount, decimals)
 
-        # Transfer index and unique deterministic ID calculation
+        # Extract indexes from Bitquery EVM record
+        call_obj = raw_transfer_item.get("Call") or {}
+        call_idx = call_obj.get("Index") if isinstance(call_obj, dict) else None
+
+        log_obj = raw_transfer_item.get("Log") or {}
+        log_idx = log_obj.get("Index") if isinstance(log_obj, dict) else None
+
         t_id = transfer_info.get("Id")
-        log_obj = raw_transfer_item.get("Log")
-        log_idx = log_obj.get("Index") if log_obj else None
         t_idx_raw = transfer_info.get("Index")
         t_type_raw = str(transfer_info.get("Type") or "").lower()
 
-        if t_idx_raw is not None:
-            transfer_index = int(t_idx_raw)
-        elif log_idx is not None:
+        # Determine primary blockchain index
+        if log_idx is not None:
             transfer_index = int(log_idx)
+            loc_key = f"log_{log_idx}"
+        elif call_idx is not None:
+            transfer_index = int(call_idx)
+            loc_key = f"call_{call_idx}"
+        elif t_id and str(t_id).strip() not in ("", "None", "0"):
+            transfer_index = int(t_idx_raw) if t_idx_raw is not None else fallback_index
+            loc_key = str(t_id)
+        elif t_idx_raw is not None:
+            transfer_index = int(t_idx_raw)
+            loc_key = f"{t_type_raw or 't'}_{transfer_index}"
         else:
             transfer_index = fallback_index
+            loc_key = f"{t_type_raw or 't'}_{fallback_index}"
 
-        # Construct deterministic unique transfer suffix
-        # Eliminates collisions when multiple transfers share the same transaction and transfer_index (e.g. index 0):
-        if t_id and str(t_id).strip() not in ("", "None", "0"):
-            suffix = str(t_id)
-        elif log_idx is not None:
-            suffix = f"log_{log_idx}"
-        elif fallback_index > 0:
-            type_tag = t_type_raw if t_type_raw else "t"
-            suffix = f"{transfer_index}_{type_tag}_{fallback_index}"
+        # Disambiguate duplicate zero/shared indices within the same transaction
+        if fallback_index > 0:
+            suffix = f"{loc_key}_{fallback_index}"
         else:
-            suffix = str(transfer_index)
+            suffix = loc_key
 
         transfer_id = f"ethereum:{tx_hash}:{suffix}"
         asset_id = "ETH" if is_native else f"ethereum:{contract.lower()}"

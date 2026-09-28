@@ -13,7 +13,7 @@ def build_transactions_query(
 ) -> str:
     """
     Build parameterized GraphQL query for EVM Transactions matching only specified filters.
-    Eliminates GraphQL null variable errors from Bitquery V2.
+    Enforces deterministic composite ordering: Block_Number DESC, Transaction_Index DESC.
     """
     var_defs = ["$address: String!", "$limit: Int!", "$offset: Int!"]
     time_filters = []
@@ -49,7 +49,10 @@ def build_transactions_query(
       where: {{
         {where_str}
       }}
-      orderBy: {{ descending: Block_Number }}
+      orderBy: [
+        {{ descending: Block_Number }},
+        {{ descending: Transaction_Index }}
+      ]
       limit: {{ count: $limit, offset: $offset }}
     ) {{
       Block {{
@@ -96,7 +99,7 @@ def build_transfers_query(
 ) -> str:
     """
     Build parameterized GraphQL query for EVM Transfers matching only specified filters.
-    Eliminates GraphQL null variable errors from Bitquery V2.
+    Enforces deterministic composite ordering: Block_Number DESC, Transaction_Index DESC, Transfer_Index ASC.
     """
     var_defs = ["$address: String!", "$limit: Int!", "$offset: Int!"]
     time_filters = []
@@ -136,7 +139,11 @@ def build_transfers_query(
       where: {{
         {where_str}
       }}
-      orderBy: {{ descending: Block_Number }}
+      orderBy: [
+        {{ descending: Block_Number }},
+        {{ descending: Transaction_Index }},
+        {{ ascending: Transfer_Index }}
+      ]
       limit: {{ count: $limit, offset: $offset }}
     ) {{
       Block {{
@@ -169,6 +176,9 @@ def build_transfers_query(
           Fungible
           ProtocolName
         }}
+      }}
+      Call {{
+        Index
       }}
       Log {{
         Index
@@ -271,7 +281,18 @@ query GetTransfersByTxHashes($txHashes: [String!]!) {
           Native
           Fungible
           ProtocolName
-        }}
+        }
+      }
+      Call {
+        Index
+      }
+      Log {
+        Index
+        Signature {
+          Name
+          Parsed
+        }
+      }
     }
   }
 }

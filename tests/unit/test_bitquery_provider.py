@@ -284,8 +284,8 @@ async def test_bitquery_get_transfers_erc20_and_precision():
         assert isinstance(t.normalized_amount, Decimal)
         assert t.normalized_amount == Decimal("50000.123456")
         assert t.raw_amount == "50000123456"
-        assert t.transfer_id == f"ethereum:{sample_tx_hash}:transfer_id_001"
-        assert t.evidence_ref == f"bitquery://evm/eth/tx/{sample_tx_hash}#transfer:transfer_id_001"
+        assert t.transfer_id == f"ethereum:{sample_tx_hash}:log_12"
+        assert t.evidence_ref == f"bitquery://evm/eth/tx/{sample_tx_hash}#transfer:log_12"
 
 
 @pytest.mark.anyio
@@ -472,13 +472,14 @@ async def test_bitquery_capabilities():
     assert caps.supports_token_metadata is True
     assert caps.supports_blocks is True
     assert caps.supports_historical_data is False
-    assert caps.supports_internal_transfers is False
+    assert caps.supports_internal_transfers is True
 
 
 def test_bitquery_duplicate_transfer_index_regression():
     """
     Regression test: Multiple native/call transfers in the same transaction
-    returning Transfer.Index = 0 must have unique, deterministic transfer_ids.
+    returning Call.Index = 0 / Transfer.Index = 0 must produce unique, deterministic transfer_ids.
+    Repeated mapping of the same raw data must be 100% idempotent.
     """
     sample_tx = "0xmulti_call_tx_1234567890abcdef1234567890abcdef1234567890abcdef123456"
     raw_transfers = [
@@ -495,6 +496,7 @@ def test_bitquery_duplicate_transfer_index_regression():
                 "Success": True,
                 "Currency": {"Name": "Ether", "Symbol": "ETH", "SmartContract": "", "Decimals": 18, "Native": True, "Fungible": True}
             },
+            "Call": {"Index": 0},
             "Log": None
         },
         {
@@ -510,6 +512,7 @@ def test_bitquery_duplicate_transfer_index_regression():
                 "Success": True,
                 "Currency": {"Name": "Ether", "Symbol": "ETH", "SmartContract": "", "Decimals": 18, "Native": True, "Fungible": True}
             },
+            "Call": {"Index": 0},
             "Log": None
         },
         {
@@ -525,28 +528,97 @@ def test_bitquery_duplicate_transfer_index_regression():
                 "Success": True,
                 "Currency": {"Name": "Ether", "Symbol": "ETH", "SmartContract": "", "Decimals": 18, "Native": True, "Fungible": True}
             },
+            "Call": {"Index": 0},
             "Log": None
         }
     ]
 
-    mapped = BitqueryEVMMapper.map_transfers(raw_transfers)
-    assert len(mapped) == 3
+    mapped1 = BitqueryEVMMapper.map_transfers(raw_transfers)
+    assert len(mapped1) == 3
 
     # All transfer IDs must be distinct and deterministic
-    transfer_ids = [t.transfer_id for t in mapped]
-    assert len(set(transfer_ids)) == 3
-    assert transfer_ids[0] == f"ethereum:{sample_tx}:0"
-    assert transfer_ids[1] == f"ethereum:{sample_tx}:0_call_1"
-    assert transfer_ids[2] == f"ethereum:{sample_tx}:0_call_2"
+    transfer_ids1 = [t.transfer_id for t in mapped1]
+    assert len(set(transfer_ids1)) == 3
+    assert transfer_ids1[0] == f"ethereum:{sample_tx}:call_0"
+    assert transfer_ids1[1] == f"ethereum:{sample_tx}:call_0_1"
+    assert transfer_ids1[2] == f"ethereum:{sample_tx}:call_0_2"
 
     # All amounts must be exact Decimals
-    assert mapped[0].normalized_amount == Decimal("0.5")
-    assert mapped[1].normalized_amount == Decimal("0.25")
-    assert mapped[2].normalized_amount == Decimal("0.1")
+    assert mapped1[0].normalized_amount == Decimal("0.5")
+    assert mapped1[1].normalized_amount == Decimal("0.25")
+    assert mapped1[2].normalized_amount == Decimal("0.1")
 
     # Call types are classified as INTERNAL while preserving AssetType.NATIVE
-    assert mapped[0].transfer_type == TransferType.INTERNAL
-    assert mapped[0].asset_type == AssetType.NATIVE
+    assert mapped1[0].transfer_type == TransferType.INTERNAL
+    assert mapped1[0].asset_type == AssetType.NATIVE
+
+    # Idempotence: repeated mapping of identical raw records produces identical IDs
+    mapped2 = BitqueryEVMMapper.map_transfers(raw_transfers)
+    transfer_ids2 = [t.transfer_id for t in mapped2]
+    assert transfer_ids1 == transfer_ids2
+
+
+def test_bitquery_token_vs_call_transfers_distinguishable():
+    """
+    Verifies that ERC-20 token transfers and native call transfers within the same
+    transaction remain clearly distinguishable in transfer_type, asset_type, and transfer_id.
+    """
+    sample_tx = "0xcombo_tx_9999999999999999999999999999999999999999999999999999999999999999"
+    usdt_contract = "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+    raw_transfers = [
+        # 1. Native internal call transfer
+        {
+            "Block": {"Number": 19500000, "Hash": "0xb01", "Time": "2026-03-14T09:00:00Z"},
+            "Transaction": {"Hash": sample_tx, "Index": 1, "From": "0xSender1", "To": "0xContract", "Cost": "0.002"},
+            "Transfer": {
+                "Id": None,
+                "Index": 0,
+                "Sender": "0xContract",
+                "Receiver": "0xUserA",
+                "Amount": "2.5",
+                "Type": "call",
+                "Success": True,
+                "Currency": {"Name": "Ether", "Symbol": "ETH", "SmartContract": "", "Decimals": 18, "Native": True, "Fungible": True}
+            },
+            "Call": {"Index": 3},
+            "Log": None
+        },
+        # 2. ERC-20 token transfer log
+        {
+            "Block": {"Number": 19500000, "Hash": "0xb01", "Time": "2026-03-14T09:00:00Z"},
+            "Transaction": {"Hash": sample_tx, "Index": 1, "From": "0xSender1", "To": "0xContract", "Cost": "0.002"},
+            "Transfer": {
+                "Id": None,
+                "Index": 1,
+                "Sender": "0xUserA",
+                "Receiver": "0xUserB",
+                "Amount": "5000",
+                "Type": "transfer",
+                "Success": True,
+                "Currency": {"Name": "Tether USD", "Symbol": "USDT", "SmartContract": usdt_contract, "Decimals": 6, "Native": False, "Fungible": True}
+            },
+            "Call": None,
+            "Log": {"Index": 15}
+        }
+    ]
+
+    mapped = BitqueryEVMMapper.map_transfers(raw_transfers)
+    assert len(mapped) == 2
+
+    # 1. Native internal call
+    native_call = mapped[0]
+    assert native_call.transfer_type == TransferType.INTERNAL
+    assert native_call.asset_type == AssetType.NATIVE
+    assert native_call.asset_id == "ETH"
+    assert native_call.transfer_id == f"ethereum:{sample_tx}:call_3"
+
+    # 2. ERC-20 token transfer
+    token_t = mapped[1]
+    assert token_t.transfer_type == TransferType.TOKEN
+    assert token_t.asset_type == AssetType.ERC20
+    assert token_t.asset_id == f"ethereum:{usdt_contract.lower()}"
+    assert token_t.transfer_id == f"ethereum:{sample_tx}:log_15"
+
 
 
 
