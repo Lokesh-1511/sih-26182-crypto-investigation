@@ -28,7 +28,6 @@ def _keccak_256(data: bytes) -> bytes:
     ]
 
     rate_bytes = 136  # (1600 - 512) // 8
-    # Padding: Ethereum uses 0x01 padding (SHA-3 uses 0x06)
     padded = bytearray(data)
     padded.append(0x01)
     while len(padded) % rate_bytes != (rate_bytes - 1):
@@ -47,30 +46,24 @@ def _keccak_256(data: bytes) -> bytes:
             x, y = i % 5, i // 5
             state[x][y] ^= val
 
-        # Keccak-f[1600] 24 rounds
         for round_idx in range(24):
-            # Theta
             C = [state[x][0] ^ state[x][1] ^ state[x][2] ^ state[x][3] ^ state[x][4] for x in range(5)]
             D = [C[(x + 4) % 5] ^ _rotl64(C[(x + 1) % 5], 1) for x in range(5)]
             for x in range(5):
                 for y in range(5):
                     state[x][y] ^= D[x]
 
-            # Rho and Pi
             B = [[0] * 5 for _ in range(5)]
             for x in range(5):
                 for y in range(5):
                     B[y][(2 * x + 3 * y) % 5] = _rotl64(state[x][y], ROT[x][y])
 
-            # Chi
             for x in range(5):
                 for y in range(5):
                     state[x][y] = (B[x][y] ^ ((~B[(x + 1) % 5][y]) & B[(x + 2) % 5][y])) & 0xFFFFFFFFFFFFFFFF
 
-            # Iota
             state[0][0] ^= RC[round_idx]
 
-    # Extract first 32 bytes (256 bits)
     out = bytearray()
     for i in range(4):
         x, y = i % 5, i // 5
@@ -79,7 +72,7 @@ def _keccak_256(data: bytes) -> bytes:
 
 
 def to_checksum_address(address: str) -> str:
-    """Convert an EVM address to its EIP-55 checksummed representation."""
+    """Convert an EVM address to its canonical EIP-55 checksummed representation."""
     addr_clean = address.lower().replace("0x", "")
     h = _keccak_256(addr_clean.encode("ascii")).hex()
     checksummed = ["0x"]
@@ -105,6 +98,7 @@ class EVMAddressValidator(BaseAddressValidator):
         if not isinstance(address, str):
             return AddressValidation(
                 valid=False,
+                checksum_valid=False,
                 normalized_address="",
                 chain=self._chain,
                 reason="Address must be a string"
@@ -114,29 +108,41 @@ class EVMAddressValidator(BaseAddressValidator):
         if not re.match(r"^0x[a-fA-F0-9]{40}$", addr):
             return AddressValidation(
                 valid=False,
+                checksum_valid=False,
                 normalized_address=addr,
                 chain=self._chain,
                 reason="Invalid EVM address format: must start with 0x and contain exactly 40 hex characters"
             )
 
-        # Check for mixed-case EIP-55 checksum
         hex_body = addr[2:]
         is_mixed_case = any(c.isupper() for c in hex_body) and any(c.islower() for c in hex_body)
         expected_checksum = to_checksum_address(addr)
 
-        if is_mixed_case and addr == expected_checksum:
-            return AddressValidation(
-                valid=True,
-                normalized_address=expected_checksum,
-                chain=self._chain,
-                reason="Valid EIP-55 Checksummed EVM Address",
-                format_type="EIP-55"
-            )
+        if is_mixed_case:
+            if addr == expected_checksum:
+                return AddressValidation(
+                    valid=True,
+                    checksum_valid=True,
+                    normalized_address=expected_checksum,
+                    chain=self._chain,
+                    reason="Valid EIP-55 Checksummed EVM Address",
+                    format_type="EIP-55"
+                )
+            else:
+                return AddressValidation(
+                    valid=True,
+                    checksum_valid=False,
+                    normalized_address=expected_checksum,
+                    chain=self._chain,
+                    reason=f"Valid Hex EVM Address (EIP-55 checksum mismatch, expected {expected_checksum})",
+                    format_type="HEX_MIXED_INVALID_CHECKSUM"
+                )
 
         return AddressValidation(
             valid=True,
+            checksum_valid=None,
             normalized_address=expected_checksum,
             chain=self._chain,
-            reason="Valid Hex EVM Address",
+            reason="Valid Raw Hex EVM Address",
             format_type="HEX_RAW"
         )

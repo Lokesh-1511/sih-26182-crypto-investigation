@@ -1,4 +1,5 @@
 # backend/app/attribution/scorer.py
+from decimal import Decimal
 from typing import List, Dict, Any, Optional
 from ..schemas.wallet import Chain
 from ..schemas.graph import FundFlowGraph
@@ -15,6 +16,7 @@ class VASPAttributionScorer:
     """
     Explainable Multi-Factor VASP Attribution Scorer.
     Computes: S = w1*F_entity + w2*F_sweep + w3*F_proximity + w4*F_volume + w5*F_temporal - Penalties
+    Uses exact Decimal precision for financial flow volume sums and ratios.
     """
 
     DEFAULT_WEIGHTS = {
@@ -38,7 +40,6 @@ class VASPAttributionScorer:
         chain: Chain,
         graph_data: FundFlowGraph
     ) -> AttributionResponse:
-        # Group terminal / downstream nodes by identified VASP
         vasp_nodes: Dict[str, List[Dict[str, Any]]] = {}
         has_mixer = False
         has_bridge = False
@@ -63,7 +64,6 @@ class VASPAttributionScorer:
 
         candidates: List[VASPAttributionCandidate] = []
 
-        # If no VASP detected in graph, evaluate fallback
         if not vasp_nodes:
             return AttributionResponse(
                 case_id=case_id,
@@ -76,9 +76,14 @@ class VASPAttributionScorer:
                 kb_version="v2026.1"
             )
 
-        total_outflow = sum(e.amount for e in graph_data.edges if e.source.lower() == suspect_wallet.lower())
-        if total_outflow == 0:
-            total_outflow = 1.0
+        # Exact Decimal calculation for volume sums
+        total_outflow = sum(
+            (e.amount if isinstance(e.amount, Decimal) else Decimal(str(e.amount))
+             for e in graph_data.edges if e.source.lower() == suspect_wallet.lower()),
+            Decimal("0")
+        )
+        if total_outflow == Decimal("0"):
+            total_outflow = Decimal("1.0")
 
         for vasp_name, node_list in vasp_nodes.items():
             factors: List[EvidenceFactor] = []
@@ -118,7 +123,7 @@ class VASPAttributionScorer:
                 node_edges = [e for e in graph_data.edges if e.target.lower() == n["node"].id.lower()]
                 if node_edges:
                     min_hop = min(min_hop, min(e.hop for e in node_edges))
-            
+
             prox_pts = max(5.0, self.weights["graph_proximity"] - (min_hop * 3.0))
             score += prox_pts
             factors.append(EvidenceFactor(
@@ -129,10 +134,15 @@ class VASPAttributionScorer:
                 supporting_tx_ids=[]
             ))
 
-            # 4. Flow Volume Strength
+            # 4. Flow Volume Strength (Exact Decimal calculation)
             vasp_addrs = {n["node"].id.lower() for n in node_list}
-            vol_to_vasp = sum(e.amount for e in graph_data.edges if e.target.lower() in vasp_addrs)
-            vol_ratio = min(1.0, vol_to_vasp / total_outflow)
+            vol_to_vasp = sum(
+                (e.amount if isinstance(e.amount, Decimal) else Decimal(str(e.amount))
+                 for e in graph_data.edges if e.target.lower() in vasp_addrs),
+                Decimal("0")
+            )
+            vol_ratio_dec = min(Decimal("1.0"), vol_to_vasp / total_outflow)
+            vol_ratio = float(vol_ratio_dec)
             vol_pts = round(vol_ratio * self.weights["flow_volume"], 1)
             score += vol_pts
             factors.append(EvidenceFactor(

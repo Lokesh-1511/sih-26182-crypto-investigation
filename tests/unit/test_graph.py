@@ -1,6 +1,7 @@
 # tests/unit/test_graph.py
-import pytest
 from datetime import datetime
+from decimal import Decimal
+import pytest
 from backend.app.schemas.wallet import Chain
 from backend.app.schemas.transaction import NormalizedTransfer
 from backend.app.graph.builder import GraphBuilder
@@ -17,7 +18,7 @@ def test_graph_builder_and_traversal():
             tx_id="0xtx1",
             from_address=suspect,
             to_address=hop1,
-            amount=10.0,
+            normalized_amount=Decimal("10.5"),
             asset="ETH",
             hop_distance=1,
             timestamp=datetime.utcnow()
@@ -26,7 +27,7 @@ def test_graph_builder_and_traversal():
             tx_id="0xtx2",
             from_address=hop1,
             to_address=hop2,
-            amount=5.0,
+            normalized_amount=Decimal("5.25"),
             asset="ETH",
             hop_distance=2,
             timestamp=datetime.utcnow()
@@ -38,11 +39,15 @@ def test_graph_builder_and_traversal():
 
     assert graph_data.total_nodes == 3
     assert graph_data.total_edges == 2
+    assert isinstance(graph_data.edges[0].amount, Decimal)
+    assert graph_data.edges[0].amount == Decimal("10.5")
+    assert graph_data.edges[1].amount == Decimal("5.25")
 
     # Traversal test
     trav = GraphTraversalEngine.traverse_bfs(builder.graph, suspect, max_hops=3)
     assert len(trav["visited_nodes"]) == 3
     assert trav["max_depth_reached"] == 2
+
 
 def test_graph_dust_filter():
     suspect = "0xAAA"
@@ -50,14 +55,15 @@ def test_graph_dust_filter():
     dust_dest = "0xCCC"
 
     transfers = [
-        NormalizedTransfer(tx_id="tx_norm", from_address=suspect, to_address=normal_dest, amount=2.5, asset="ETH"),
-        NormalizedTransfer(tx_id="tx_dust", from_address=suspect, to_address=dust_dest, amount=0.00001, asset="ETH")
+        NormalizedTransfer(tx_id="tx_norm", from_address=suspect, to_address=normal_dest, normalized_amount=Decimal("2.5"), asset="ETH"),
+        NormalizedTransfer(tx_id="tx_dust", from_address=suspect, to_address=dust_dest, normalized_amount=Decimal("0.00001"), asset="ETH")
     ]
 
     builder = GraphBuilder()
     graph_data = builder.build_from_transfers("CASE-DUST", suspect, Chain.ETH, transfers)
     assert len(graph_data.edges) == 2
 
-    filtered = GraphNoiseFilter.apply_filters(graph_data, hide_dust=True, dust_threshold=0.001)
+    filtered = GraphNoiseFilter.apply_filters(graph_data, hide_dust=True, dust_threshold=Decimal("0.001"))
     assert len(filtered.edges) == 1
     assert filtered.edges[0].tx_id == "tx_norm"
+    assert filtered.edges[0].amount == Decimal("2.5")

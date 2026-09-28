@@ -4,10 +4,11 @@ from pydantic import BaseModel, Field
 from .enums import Chain
 
 class AddressValidation(BaseModel):
-    valid: bool = Field(..., description="Whether address is cryptographically valid")
-    normalized_address: str = Field(..., description="Canonical or checksummed address")
+    valid: bool = Field(..., description="Whether address is structurally and cryptographically valid")
+    checksum_valid: Optional[bool] = Field(None, description="Whether mixed-case or cryptographic checksum is valid")
+    normalized_address: str = Field(..., description="Canonical or checksummed address representation")
     chain: Chain = Field(..., description="Target blockchain network")
-    reason: Optional[str] = Field(None, description="Validation failure reason or details")
+    reason: Optional[str] = Field(None, description="Validation failure reason or formatting details")
     format_type: Optional[str] = Field(None, description="Address format scheme, e.g. EIP-55, BECH32_SEGWIT")
 
     @property

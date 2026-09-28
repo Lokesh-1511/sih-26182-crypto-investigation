@@ -9,6 +9,7 @@ class WalletValidationRequest(BaseModel):
 
 class WalletValidationResult(BaseModel):
     valid: bool
+    checksum_valid: Optional[bool] = None
     normalized_address: str
     chain: Chain
     format_type: Optional[str] = None

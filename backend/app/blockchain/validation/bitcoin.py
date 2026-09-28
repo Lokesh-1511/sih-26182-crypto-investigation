@@ -22,7 +22,6 @@ def _b58decode_check(addr: str) -> Optional[bytes]:
     if not addr or any(c not in B58_MAP for c in addr):
         return None
 
-    # Base58 decode into large integer
     num = 0
     for c in addr:
         num = num * 58 + B58_MAP[c]
@@ -33,7 +32,6 @@ def _b58decode_check(addr: str) -> Optional[bytes]:
         num >>= 8
     raw.reverse()
 
-    # Add leading zeros for '1's
     leading_ones = len(addr) - len(addr.lstrip('1'))
     decoded = bytes([0] * leading_ones + raw)
 
@@ -49,7 +47,6 @@ def _b58decode_check(addr: str) -> Optional[bytes]:
 
 
 def _bech32_polymod(values: list[int]) -> int:
-    """Internal Bech32 polynomial modulus generator."""
     GEN = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
     chk = 1
     for v in values:
@@ -65,7 +62,6 @@ def _bech32_hrp_expand(hrp: str) -> list[int]:
 
 
 def _bech32_verify_checksum(hrp: str, data: list[int]) -> Optional[str]:
-    """Verify Bech32 (Segwit v0) or Bech32m (Segwit v1+) checksum."""
     poly = _bech32_polymod(_bech32_hrp_expand(hrp) + data)
     if poly == BECH32_CONST:
         return "BECH32_SEGWIT"
@@ -75,7 +71,6 @@ def _bech32_verify_checksum(hrp: str, data: list[int]) -> Optional[str]:
 
 
 def _decode_bech32(addr: str) -> Tuple[Optional[str], Optional[list[int]], Optional[str]]:
-    """Decode a Bech32 / Bech32m string into HRP and 5-bit integer array."""
     if ((addr.lower() != addr) and (addr.upper() != addr)) or len(addr) < 8 or len(addr) > 90:
         return None, None, None
 
@@ -108,6 +103,7 @@ class BitcoinAddressValidator(BaseAddressValidator):
         if not isinstance(address, str):
             return AddressValidation(
                 valid=False,
+                checksum_valid=False,
                 normalized_address="",
                 chain=Chain.BITCOIN,
                 reason="Address must be a string"
@@ -121,16 +117,17 @@ class BitcoinAddressValidator(BaseAddressValidator):
             if hrp != "bc" or not data:
                 return AddressValidation(
                     valid=False,
+                    checksum_valid=False,
                     normalized_address=addr,
                     chain=Chain.BITCOIN,
                     reason="Invalid Bitcoin Bech32/Bech32m Segwit/Taproot address or checksum mismatch"
                 )
-            
+
             witness_version = data[0]
             if witness_version == 0 and spec == "BECH32_SEGWIT":
-                # Segwit v0 requires 20 or 32 bytes witness program
                 return AddressValidation(
                     valid=True,
+                    checksum_valid=True,
                     normalized_address=addr.lower(),
                     chain=Chain.BITCOIN,
                     reason="Valid Bitcoin BECH32_SEGWIT address",
@@ -139,6 +136,7 @@ class BitcoinAddressValidator(BaseAddressValidator):
             elif witness_version == 1 and spec == "BECH32M_TAPROOT":
                 return AddressValidation(
                     valid=True,
+                    checksum_valid=True,
                     normalized_address=addr.lower(),
                     chain=Chain.BITCOIN,
                     reason="Valid Bitcoin BECH32M_TAPROOT address",
@@ -147,6 +145,7 @@ class BitcoinAddressValidator(BaseAddressValidator):
             elif spec is not None:
                 return AddressValidation(
                     valid=True,
+                    checksum_valid=True,
                     normalized_address=addr.lower(),
                     chain=Chain.BITCOIN,
                     reason=f"Valid Bitcoin {spec} address",
@@ -155,6 +154,7 @@ class BitcoinAddressValidator(BaseAddressValidator):
             else:
                 return AddressValidation(
                     valid=False,
+                    checksum_valid=False,
                     normalized_address=addr,
                     chain=Chain.BITCOIN,
                     reason="Invalid Bitcoin Bech32/Bech32m witness program"
@@ -165,6 +165,7 @@ class BitcoinAddressValidator(BaseAddressValidator):
             if not (26 <= len(addr) <= 35):
                 return AddressValidation(
                     valid=False,
+                    checksum_valid=False,
                     normalized_address=addr,
                     chain=Chain.BITCOIN,
                     reason="Invalid Bitcoin legacy address length (must be 26-35 characters)"
@@ -174,12 +175,12 @@ class BitcoinAddressValidator(BaseAddressValidator):
             if decoded is None:
                 return AddressValidation(
                     valid=False,
+                    checksum_valid=False,
                     normalized_address=addr,
                     chain=Chain.BITCOIN,
                     reason="Invalid Bitcoin Base58Check address or checksum mismatch"
                 )
 
-            # Check version byte: 0x00 for Mainnet P2PKH ('1'), 0x05 for Mainnet P2SH ('3')
             version_byte = decoded[0]
             if version_byte == 0x00:
                 fmt = "P2PKH_LEGACY"
@@ -190,6 +191,7 @@ class BitcoinAddressValidator(BaseAddressValidator):
 
             return AddressValidation(
                 valid=True,
+                checksum_valid=True,
                 normalized_address=addr,
                 chain=Chain.BITCOIN,
                 reason=f"Valid Bitcoin {fmt} address",
@@ -198,6 +200,7 @@ class BitcoinAddressValidator(BaseAddressValidator):
 
         return AddressValidation(
             valid=False,
+            checksum_valid=False,
             normalized_address=addr,
             chain=Chain.BITCOIN,
             reason="Bitcoin address must begin with '1', '3', or 'bc1'"

@@ -28,7 +28,6 @@ def _b58decode_check_tron(addr: str) -> Optional[bytes]:
     leading_ones = len(addr) - len(addr.lstrip('1'))
     decoded = bytes([0] * leading_ones + raw)
 
-    # Tron addresses decode to exactly 25 bytes: 1 byte prefix (0x41) + 20 byte address + 4 byte checksum
     if len(decoded) != 25:
         return None
 
@@ -51,6 +50,7 @@ class TronAddressValidator(BaseAddressValidator):
         if not isinstance(address, str):
             return AddressValidation(
                 valid=False,
+                checksum_valid=False,
                 normalized_address="",
                 chain=Chain.TRON,
                 reason="Address must be a string"
@@ -61,6 +61,7 @@ class TronAddressValidator(BaseAddressValidator):
         if not addr.startswith("T"):
             return AddressValidation(
                 valid=False,
+                checksum_valid=False,
                 normalized_address=addr,
                 chain=Chain.TRON,
                 reason="Tron address must begin with 'T'"
@@ -69,6 +70,7 @@ class TronAddressValidator(BaseAddressValidator):
         if len(addr) != 34:
             return AddressValidation(
                 valid=False,
+                checksum_valid=False,
                 normalized_address=addr,
                 chain=Chain.TRON,
                 reason=f"Invalid Tron address length: expected 34 characters, got {len(addr)}"
@@ -78,6 +80,7 @@ class TronAddressValidator(BaseAddressValidator):
         if payload is None:
             return AddressValidation(
                 valid=False,
+                checksum_valid=False,
                 normalized_address=addr,
                 chain=Chain.TRON,
                 reason="Invalid Tron Base58Check checksum or character encoding"
@@ -86,6 +89,7 @@ class TronAddressValidator(BaseAddressValidator):
         if payload[0] != 0x41:
             return AddressValidation(
                 valid=False,
+                checksum_valid=False,
                 normalized_address=addr,
                 chain=Chain.TRON,
                 reason=f"Invalid Tron prefix byte: expected 0x41, got 0x{payload[0]:02x}"
@@ -93,6 +97,7 @@ class TronAddressValidator(BaseAddressValidator):
 
         return AddressValidation(
             valid=True,
+            checksum_valid=True,
             normalized_address=addr,
             chain=Chain.TRON,
             reason="Valid Tron Base58Check address",

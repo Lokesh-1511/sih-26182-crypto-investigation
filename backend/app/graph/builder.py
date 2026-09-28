@@ -1,4 +1,5 @@
 # backend/app/graph/builder.py
+from decimal import Decimal
 import networkx as nx
 from typing import List, Dict, Any, Optional
 from ..schemas.wallet import Chain
@@ -8,7 +9,7 @@ from ..schemas.graph import GraphNode, GraphEdge, FundFlowGraph
 class GraphBuilder:
     """
     Constructs a directed NetworkX multigraph from normalized blockchain transfers.
-    Preserves transaction hashes, assets, amounts, and hop distances.
+    Preserves exact Decimal transfer amounts, transaction hashes, assets, and hop distances.
     """
 
     def __init__(self):
@@ -80,18 +81,21 @@ class GraphBuilder:
             edge_counter += 1
             ts_str = t.timestamp.isoformat() if t.timestamp else ""
             hop_val = getattr(t, "hop_distance", 0)
+            exact_amt = t.normalized_amount if isinstance(t.normalized_amount, Decimal) else Decimal(str(t.amount))
+
             edge_obj = GraphEdge(
                 id=edge_id,
                 source=src,
                 target=dst,
                 tx_id=t.tx_id,
                 asset=t.asset,
-                amount=t.amount,
+                amount=exact_amt,
                 timestamp=ts_str,
                 edge_type="TRANSFER",
                 hop=hop_val
             )
             edges_list.append(edge_obj)
+            # Store in networkx graph with Decimal amount
             self.graph.add_edge(src, dst, key=edge_id, **edge_obj.model_dump())
 
         return FundFlowGraph(

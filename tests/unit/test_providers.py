@@ -84,21 +84,17 @@ async def test_fixture_provider_pagination():
 
 
 @pytest.mark.anyio
-async def test_bitquery_provider_skeleton_raises_unavailable():
-    provider = BitqueryProvider(api_key="test_dummy_key")
+async def test_bitquery_provider_interface_and_capabilities():
+    provider = BitqueryProvider(access_token="test_dummy_key")
     caps = provider.capabilities()
     assert isinstance(caps, ProviderCapabilities)
+    assert caps.chains == [Chain.ETHEREUM]
+    assert caps.supports_transactions is True
+    assert caps.supports_transfers is True
 
     # Address validation runs locally
     val = await provider.validate_address(Chain.ETH, "0xd8da6bf26964af9d7eed9e03e53415d37aa96045")
     assert val.valid is True
-
-    # Unimplemented live methods raise ProviderUnavailableError
-    with pytest.raises(ProviderUnavailableError):
-        await provider.get_transactions(Chain.ETH, "0xd8da6bf26964af9d7eed9e03e53415d37aa96045")
-
-    with pytest.raises(ProviderUnavailableError):
-        await provider.get_transfers(Chain.ETH, "0xd8da6bf26964af9d7eed9e03e53415d37aa96045")
 
 
 @pytest.mark.anyio
