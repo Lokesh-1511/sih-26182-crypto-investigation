@@ -1,19 +1,28 @@
 # tests/unit/test_validation.py
 import pytest
 from backend.app.blockchain.validation.validator import MultiChainValidator
-from backend.app.schemas.wallet import Chain
+from backend.app.blockchain.validation.evm import to_checksum_address
+from backend.app.blockchain.models.enums import Chain
 
 def test_ethereum_address_validation():
-    # Valid EIP-55
-    res1 = MultiChainValidator.validate("0x71C83e20e8F468a3E282241F8C936f4521487439", Chain.ETH)
+    # Valid EIP-55 Checksum
+    valid_eip55 = "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
+    res1 = MultiChainValidator.validate(valid_eip55, Chain.ETHEREUM)
     assert res1.valid is True
-    assert res1.chain == Chain.ETH
+    assert res1.format_type == "EIP-55"
+    assert res1.normalized_address == valid_eip55
 
-    # Valid lowercase
-    res2 = MultiChainValidator.validate("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", Chain.ETH)
+    # Valid lowercase (converted to normalized checksum)
+    raw_lower = "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"
+    res2 = MultiChainValidator.validate(raw_lower, Chain.ETH)
     assert res2.valid is True
+    assert res2.normalized_address == to_checksum_address(raw_lower)
 
-    # Malformed length
+    # Valid demo test address
+    res_demo = MultiChainValidator.validate("0x71C83e20e8F468a3E282241F8C936f4521487439", Chain.ETH)
+    assert res_demo.valid is True
+
+    # Invalid length
     res3 = MultiChainValidator.validate("0x1234", Chain.ETH)
     assert res3.valid is False
 
@@ -21,9 +30,16 @@ def test_ethereum_address_validation():
     res4 = MultiChainValidator.validate("0xZZZZ3e20e8F468a3E282241F8C936f4521487439", Chain.ETH)
     assert res4.valid is False
 
+    # BNB and Polygon validation
+    res_bnb = MultiChainValidator.validate(valid_eip55, Chain.BNB)
+    assert res_bnb.valid is True
+    res_poly = MultiChainValidator.validate(valid_eip55, Chain.POLYGON)
+    assert res_poly.valid is True
+
+
 def test_bitcoin_address_validation():
     # Legacy P2PKH (1...)
-    res1 = MultiChainValidator.validate("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", Chain.BTC)
+    res1 = MultiChainValidator.validate("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", Chain.BITCOIN)
     assert res1.valid is True
     assert res1.format_type == "P2PKH_LEGACY"
 
@@ -32,18 +48,28 @@ def test_bitcoin_address_validation():
     assert res2.valid is True
     assert res2.format_type == "P2SH_SEGWIT"
 
-    # Bech32 SegWit (bc1q...)
+    # Bech32 SegWit v0 (bc1q...)
     res3 = MultiChainValidator.validate("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", Chain.BTC)
     assert res3.valid is True
     assert res3.format_type == "BECH32_SEGWIT"
+
+    # Bech32m Taproot v1 (bc1p...)
+    res_taproot = MultiChainValidator.validate("bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0", Chain.BITCOIN)
+    assert res_taproot.valid is True
+    assert res_taproot.format_type == "BECH32M_TAPROOT"
 
     # Malformed legacy (contains invalid Base58 character '0')
     res4 = MultiChainValidator.validate("101zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", Chain.BTC)
     assert res4.valid is False
 
+    # Base58Check checksum mismatch (last char altered)
+    res5 = MultiChainValidator.validate("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNb", Chain.BTC)
+    assert res5.valid is False
+
+
 def test_tron_address_validation():
     # Valid Tron Base58Check
-    res1 = MultiChainValidator.validate("TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", Chain.TRX)
+    res1 = MultiChainValidator.validate("TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", Chain.TRON)
     assert res1.valid is True
     assert res1.format_type == "BASE58CHECK_TRON"
 
@@ -54,3 +80,7 @@ def test_tron_address_validation():
     # Invalid length
     res3 = MultiChainValidator.validate("TR7NHqjeKQxGTCi8q8", Chain.TRX)
     assert res3.valid is False
+
+    # Checksum tampering
+    res4 = MultiChainValidator.validate("TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6u", Chain.TRON)
+    assert res4.valid is False

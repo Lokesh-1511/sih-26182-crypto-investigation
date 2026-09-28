@@ -1,0 +1,13 @@
+flowchart TD
+    A["Suspect Wallet Input (BTC / ETH / TRX / SOL)"] --> B["Address Validation Engine (Checksum & Format)"]
+    B --> C["Blockchain Ingestion Layer (Offline Fixtures / Live APIs)"]
+    C --> D["Transaction Normalizer (Lossless Multi-Chain to Standard Schema)"]
+    D --> E["NetworkX Graph Engine (Multi-Hop Traversal 3-5 Hops)"]
+    E --> F["Entity Resolver & Knowledge Base (VASP Labels, Mixers, Bridges)"]
+    F --> G["Multi-Factor Attribution Engine (Explainable VASP Scoring)"]
+    F --> H["Risk & AML Engine (Obfuscation Breakpoints & Typologies)"]
+    G --> I["Explainable Attribution Card & Counterfactual Sensitivity"]
+    H --> J["Forensic Reports (PDF) & Section 91 CrPC Action Packets"]
+    I --> K["React + Cytoscape.js Frontend Console"]
+    J --> K
+

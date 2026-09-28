@@ -1,15 +1,7 @@
 # backend/app/schemas/wallet.py
-from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, Field
-
-class Chain(str, Enum):
-    BTC = "BTC"
-    ETH = "ETH"
-    TRX = "TRX"
-    BNB = "BNB"
-    SOL = "SOL"
-    POLYGON = "POLYGON"
+from ..blockchain.models.enums import Chain
 
 class WalletValidationRequest(BaseModel):
     address: str = Field(..., description="Cryptocurrency wallet address string")

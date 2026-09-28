@@ -79,6 +79,7 @@ class GraphBuilder:
             edge_id = f"e_{edge_counter}_{t.tx_id[:8]}"
             edge_counter += 1
             ts_str = t.timestamp.isoformat() if t.timestamp else ""
+            hop_val = getattr(t, "hop_distance", 0)
             edge_obj = GraphEdge(
                 id=edge_id,
                 source=src,
@@ -88,7 +89,7 @@ class GraphBuilder:
                 amount=t.amount,
                 timestamp=ts_str,
                 edge_type="TRANSFER",
-                hop=t.hop_distance
+                hop=hop_val
             )
             edges_list.append(edge_obj)
             self.graph.add_edge(src, dst, key=edge_id, **edge_obj.model_dump())
