@@ -30,12 +30,16 @@ class GraphBuilder:
         chain: Chain,
         transfers: List[NormalizedTransfer],
         node_labels: Optional[Dict[str, Dict[str, Any]]] = None,
-        hop_map: Optional[Dict[str, int]] = None
+        hop_map: Optional[Dict[str, int]] = None,
+        boundary_nodes: Optional[Dict[str, str]] = None,
+        direction: str = "outgoing"
     ) -> FundFlowGraph:
         self.graph.clear()
         node_labels = node_labels or {}
         hop_map = hop_map or {}
+        boundary_nodes = boundary_nodes or {}
         suspect_norm = suspect_wallet.lower()
+        is_incoming = direction.lower() in ("incoming", "in", "backward")
 
         nodes_dict: Dict[str, GraphNode] = {}
         edges_list: List[GraphEdge] = []
@@ -49,6 +53,9 @@ class GraphBuilder:
             label="Suspect Wallet",
             entity_name=None,
             confidence=1.0,
+            hop_distance=0,
+            is_boundary=False,
+            boundary_reason=None,
             metadata={"is_root": True}
         )
         self.graph.add_node(suspect_norm, **nodes_dict[suspect_norm].model_dump())
@@ -63,6 +70,9 @@ class GraphBuilder:
             # Add source node if not present
             if src not in nodes_dict:
                 lbl_info = node_labels.get(src, {})
+                src_is_bnd = src in boundary_nodes
+                src_bnd_reason = boundary_nodes.get(src)
+                src_hop = hop_map.get(src, 0 if src == suspect_norm else 1)
                 nodes_dict[src] = GraphNode(
                     id=src,
                     address=t.from_address,
@@ -71,13 +81,26 @@ class GraphBuilder:
                     label=lbl_info.get("entity_name"),
                     entity_name=lbl_info.get("entity_name"),
                     confidence=lbl_info.get("confidence", 1.0),
+                    hop_distance=src_hop,
+                    is_boundary=src_is_bnd,
+                    boundary_reason=src_bnd_reason,
                     metadata=lbl_info.get("metadata", {})
                 )
                 self.graph.add_node(src, **nodes_dict[src].model_dump())
+            else:
+                # Update hop distance if better or in hop_map
+                if src in hop_map:
+                    nodes_dict[src].hop_distance = hop_map[src]
+                if src in boundary_nodes:
+                    nodes_dict[src].is_boundary = True
+                    nodes_dict[src].boundary_reason = boundary_nodes[src]
 
             # Add destination node if not present
             if dst not in nodes_dict:
                 lbl_info = node_labels.get(dst, {})
+                dst_is_bnd = dst in boundary_nodes
+                dst_bnd_reason = boundary_nodes.get(dst)
+                dst_hop = hop_map.get(dst, 0 if dst == suspect_norm else 1)
                 nodes_dict[dst] = GraphNode(
                     id=dst,
                     address=t.to_address,
@@ -86,9 +109,18 @@ class GraphBuilder:
                     label=lbl_info.get("entity_name"),
                     entity_name=lbl_info.get("entity_name"),
                     confidence=lbl_info.get("confidence", 1.0),
+                    hop_distance=dst_hop,
+                    is_boundary=dst_is_bnd,
+                    boundary_reason=dst_bnd_reason,
                     metadata=lbl_info.get("metadata", {})
                 )
                 self.graph.add_node(dst, **nodes_dict[dst].model_dump())
+            else:
+                if dst in hop_map:
+                    nodes_dict[dst].hop_distance = hop_map[dst]
+                if dst in boundary_nodes:
+                    nodes_dict[dst].is_boundary = True
+                    nodes_dict[dst].boundary_reason = boundary_nodes[dst]
 
             # Determine deterministic edge key
             edge_key = t.transfer_id
@@ -101,10 +133,18 @@ class GraphBuilder:
             # Decimal amount handling
             exact_amt = t.normalized_amount if isinstance(t.normalized_amount, Decimal) else Decimal(str(t.amount))
 
-            # Hop distance: prefer explicit hop_map, then transfer hop_distance, default 1
-            hop_val = hop_map.get(dst, getattr(t, "hop_distance", 1))
-            if hop_val == 0 and dst != suspect_norm:
+            # Direction-aware hop distance assignment
+            if is_incoming:
+                # In incoming flow, hop distance increases moving backwards to source
+                hop_val = hop_map.get(src, getattr(t, "hop_distance", 1))
+            else:
+                # In outgoing flow, hop distance increases moving forwards to target
+                hop_val = hop_map.get(dst, getattr(t, "hop_distance", 1))
+
+            if hop_val == 0 and (dst != suspect_norm if not is_incoming else src != suspect_norm):
                 hop_val = 1
+
+            edge_is_bnd = (src in boundary_nodes or dst in boundary_nodes)
 
             # Transfer type string normalized to uppercase
             if hasattr(t.transfer_type, "value"):
@@ -114,7 +154,6 @@ class GraphBuilder:
 
             # Evidence reference
             ev_ref = t.evidence_ref or f"ev_{t.tx_hash[:10]}"
-
             ts_str = t.timestamp.isoformat() if t.timestamp else ""
 
             edge_obj = GraphEdge(
@@ -130,19 +169,25 @@ class GraphBuilder:
                 transfer_type=t_type_str,
                 edge_type="SWEEP" if getattr(t, "is_sweep", False) else "TRANSFER",
                 hop=hop_val,
+                is_boundary=edge_is_bnd,
                 evidence_ref=ev_ref
             )
             edges_list.append(edge_obj)
 
-            # Store in MultiDiGraph with unique edge_key
+            # Store in MultiDiGraph with unique edge_key (always preserves source -> target blockchain fund direction)
             self.graph.add_edge(src, dst, key=edge_key, **edge_obj.model_dump())
 
-        # 3. Dynamic shortest-path hop computation if hops were not preset
-        for edge_obj in edges_list:
-            if edge_obj.hop == 1 and edge_obj.source != suspect_norm:
+        # 3. Dynamic shortest-path hop computation if hop_map was empty
+        if not hop_map and len(nodes_dict) > 1:
+            for node_id, node_obj in nodes_dict.items():
+                if node_id == suspect_norm:
+                    continue
                 try:
-                    shortest = nx.shortest_path_length(self.graph, source=suspect_norm, target=edge_obj.target)
-                    edge_obj.hop = shortest
+                    if is_incoming:
+                        dist = nx.shortest_path_length(self.graph, source=node_id, target=suspect_norm)
+                    else:
+                        dist = nx.shortest_path_length(self.graph, source=suspect_norm, target=node_id)
+                    node_obj.hop_distance = dist
                 except (nx.NetworkXNoPath, nx.NodeNotFound):
                     pass
 
@@ -159,7 +204,9 @@ class GraphBuilder:
             key=lambda e: (e.timestamp or "", e.tx_hash, e.transfer_id)
         )
 
-        max_hop = max((e.hop for e in sorted_edges), default=0)
+        actual_hop_depth = max((n.hop_distance for n in sorted_nodes if not n.is_boundary), default=0)
+        if actual_hop_depth == 0 and sorted_edges:
+            actual_hop_depth = 1
 
         return FundFlowGraph(
             case_id=case_id,
@@ -168,7 +215,7 @@ class GraphBuilder:
             nodes=sorted_nodes,
             edges=sorted_edges,
             breakpoints=[],
-            hop_depth=max(max_hop, 1) if sorted_edges else 0,
+            hop_depth=actual_hop_depth,
             total_nodes=len(sorted_nodes),
             total_edges=len(sorted_edges)
         )

@@ -13,6 +13,7 @@ import {
   AttributionData
 } from './services/api';
 import { InvestigationGraph } from './pages/InvestigationGraph';
+import { WalletInvestigationPage } from './pages/WalletInvestigationPage';
 import { ExplainableCard } from './components/ExplainableCard';
 import { ReportModal } from './components/ReportModal';
 import { ActionPacketModal } from './components/ActionPacketModal';
@@ -22,7 +23,7 @@ export const App: React.FC = () => {
   const [activeCaseId, setActiveCaseId] = useState<string>('CASE-2026-001A');
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [attribution, setAttribution] = useState<AttributionData | null>(null);
-  const [activeNav, setActiveNav] = useState<'DASHBOARD' | 'GRAPH' | 'STATISTICS' | 'DOSSIER' | 'REGISTRY'>('DASHBOARD');
+  const [activeNav, setActiveNav] = useState<'DASHBOARD' | 'INVESTIGATION' | 'GRAPH' | 'STATISTICS' | 'DOSSIER' | 'REGISTRY'>('INVESTIGATION');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -157,6 +158,20 @@ export const App: React.FC = () => {
 
           <nav className="sidebar-nav">
             <button
+              className={`nav-link ${activeNav === 'INVESTIGATION' ? 'active' : ''}`}
+              onClick={() => setActiveNav('INVESTIGATION')}
+              title="Wallet Investigation"
+            >
+              <span className="nav-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </span>
+              <span className="nav-text">Wallet Investigation</span>
+            </button>
+
+            <button
               className={`nav-link ${activeNav === 'DASHBOARD' ? 'active' : ''}`}
               onClick={() => setActiveNav('DASHBOARD')}
               title="Dashboard"
@@ -270,132 +285,136 @@ export const App: React.FC = () => {
 
       {/* Main Content Viewport */}
       <main className="main-viewport">
-        {/* Header Bar */}
-        <header className="dashboard-header">
-          <div className="header-top-row">
-            <div className="view-title-group">
-              <h1>Information</h1>
-            </div>
+        {activeNav === 'INVESTIGATION' ? (
+          <WalletInvestigationPage theme={theme} />
+        ) : (
+          <>
+            {/* Header Bar */}
+            <header className="dashboard-header">
+              <div className="header-top-row">
+                <div className="view-title-group">
+                  <h1>Information</h1>
+                </div>
 
-            <div className="header-actions-group">
-              <div className="date-stepper">
-                <button
-                  className="stepper-btn"
-                  onClick={() => setActiveDateIndex((prev) => (prev > 0 ? prev - 1 : dates.length - 1))}
-                >
-                  &lt;
-                </button>
-                <span className="stepper-date">{dates[activeDateIndex]}</span>
-                <button
-                  className="stepper-btn"
-                  onClick={() => setActiveDateIndex((prev) => (prev < dates.length - 1 ? prev + 1 : 0))}
-                >
-                  &gt;
-                </button>
+                <div className="header-actions-group">
+                  <div className="date-stepper">
+                    <button
+                      className="stepper-btn"
+                      onClick={() => setActiveDateIndex((prev) => (prev > 0 ? prev - 1 : dates.length - 1))}
+                    >
+                      &lt;
+                    </button>
+                    <span className="stepper-date">{dates[activeDateIndex]}</span>
+                    <button
+                      className="stepper-btn"
+                      onClick={() => setActiveDateIndex((prev) => (prev < dates.length - 1 ? prev + 1 : 0))}
+                    >
+                      &gt;
+                    </button>
+                  </div>
+
+                  <select
+                    className="select-input"
+                    value={activeCaseId}
+                    onChange={(e) => setActiveCaseId(e.target.value)}
+                  >
+                    {cases.map((c) => (
+                      <option key={c.case_id} value={c.case_id}>
+                        {c.case_id} ({c.chain || 'ETH'}) - {c.title.slice(0, 20)}...
+                      </option>
+                    ))}
+                  </select>
+
+                  <button className="btn-primary" onClick={handleStartTrace} disabled={loading}>
+                    {loading ? 'Analyzing...' : 'Execute BFS Trace'}
+                  </button>
+                </div>
               </div>
 
-              <select
-                className="select-input"
-                value={activeCaseId}
-                onChange={(e) => setActiveCaseId(e.target.value)}
-              >
+              {/* Region / Case Navigation Tabs (Underline Active Style from Screenshot) */}
+              <div className="case-tabs-bar">
                 {cases.map((c) => (
-                  <option key={c.case_id} value={c.case_id}>
-                    {c.case_id} ({c.chain || 'ETH'}) - {c.title.slice(0, 20)}...
-                  </option>
+                  <button
+                    key={c.case_id}
+                    className={`case-tab-btn ${activeCaseId === c.case_id ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveCaseId(c.case_id);
+                      setActiveNav('DASHBOARD');
+                    }}
+                  >
+                    {c.title.split('-')[1]?.trim() || c.title} ({c.chain || 'BTC'})
+                  </button>
                 ))}
-              </select>
+                <button
+                  className={`case-tab-btn ${activeNav === 'REGISTRY' ? 'active' : ''}`}
+                  onClick={() => setActiveNav('REGISTRY')}
+                >
+                  All Registry Cases
+                </button>
+              </div>
+            </header>
 
-              <button className="btn-primary" onClick={handleStartTrace} disabled={loading}>
-                {loading ? 'Analyzing...' : 'Execute BFS Trace'}
-              </button>
-            </div>
-          </div>
-
-          {/* Region / Case Navigation Tabs (Underline Active Style from Screenshot) */}
-          <div className="case-tabs-bar">
-            {cases.map((c) => (
-              <button
-                key={c.case_id}
-                className={`case-tab-btn ${activeCaseId === c.case_id ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveCaseId(c.case_id);
-                  setActiveNav('DASHBOARD');
-                }}
-              >
-                {c.title.split('-')[1]?.trim() || c.title} ({c.chain || 'BTC'})
-              </button>
-            ))}
-            <button
-              className={`case-tab-btn ${activeNav === 'REGISTRY' ? 'active' : ''}`}
-              onClick={() => setActiveNav('REGISTRY')}
-            >
-              All Registry Cases
-            </button>
-          </div>
-        </header>
-
-        {/* Top 4 KPI Stat Cards Row (Matching Screenshot Infected / Bankrupts / Unemployment / Tests) */}
-        <section className="kpi-row">
-          <div className="kpi-card">
-            <div className="kpi-title">Suspect Outflow</div>
-            <div className="kpi-value">{totalAmount}</div>
-            <div className="kpi-delta critical">
-              <span className="delta-pill critical">+ 0.35 trace</span>
-            </div>
-          </div>
-
-          <div className="kpi-card">
-            <div className="kpi-title">Attributed VASP</div>
-            <div className="kpi-value">{attributedVaspName}</div>
-            <div className="kpi-delta positive">
-              <span className="delta-pill positive">+ {confidenceScore}</span>
-            </div>
-          </div>
-
-          <div className="kpi-card">
-            <div className="kpi-title">Shortest Path</div>
-            <div className="kpi-value">{hopDistance}</div>
-            <div className="kpi-delta neutral">
-              <span className="delta-pill neutral">Peeling Breakpoint</span>
-            </div>
-          </div>
-
-          <div className="kpi-card">
-            <div className="kpi-title">Cluster Density</div>
-            <div className="kpi-value">{totalAddresses}</div>
-            <div className="kpi-delta positive">
-              <span className="delta-pill positive">+ {totalTransfers}</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Dynamic Views */}
-        {activeNav === 'DASHBOARD' && (
-          <section className="dashboard-grid-2col">
-            {/* Left Column: Map Equivalent (Fund-Flow Graph) */}
-            <div>
-              {graphData ? (
-                <InvestigationGraph graphData={graphData} theme={theme} caseId={activeCase?.case_id || activeCaseId} />
-              ) : (
-                <div className="card-box" style={{ height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                  Loading topological graph...
+            {/* Top 4 KPI Stat Cards Row (Matching Screenshot Infected / Bankrupts / Unemployment / Tests) */}
+            <section className="kpi-row">
+              <div className="kpi-card">
+                <div className="kpi-title">Suspect Outflow</div>
+                <div className="kpi-value">{totalAmount}</div>
+                <div className="kpi-delta critical">
+                  <span className="delta-pill critical">+ 0.35 trace</span>
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Right Column: Statistics Table & Diagram Visualization */}
-            <div>
-              {attribution && (
-                <ExplainableCard
-                  attribution={attribution}
-                  onOpenReport={handleExportReport}
-                  onOpenActionPacket={handleGenerateActionPacket}
-                />
-              )}
-            </div>
-          </section>
-        )}
+              <div className="kpi-card">
+                <div className="kpi-title">Attributed VASP</div>
+                <div className="kpi-value">{attributedVaspName}</div>
+                <div className="kpi-delta positive">
+                  <span className="delta-pill positive">+ {confidenceScore}</span>
+                </div>
+              </div>
+
+              <div className="kpi-card">
+                <div className="kpi-title">Shortest Path</div>
+                <div className="kpi-value">{hopDistance}</div>
+                <div className="kpi-delta neutral">
+                  <span className="delta-pill neutral">Peeling Breakpoint</span>
+                </div>
+              </div>
+
+              <div className="kpi-card">
+                <div className="kpi-title">Cluster Density</div>
+                <div className="kpi-value">{totalAddresses}</div>
+                <div className="kpi-delta positive">
+                  <span className="delta-pill positive">+ {totalTransfers}</span>
+                </div>
+              </div>
+            </section>
+
+            {/* Dynamic Views */}
+            {activeNav === 'DASHBOARD' && (
+              <section className="dashboard-grid-2col">
+                {/* Left Column: Map Equivalent (Fund-Flow Graph) */}
+                <div>
+                  {graphData ? (
+                    <InvestigationGraph graphData={graphData} theme={theme} caseId={activeCase?.case_id || activeCaseId} />
+                  ) : (
+                    <div className="card-box" style={{ height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                      Loading topological graph...
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column: Statistics Table & Diagram Visualization */}
+                <div>
+                  {attribution && (
+                    <ExplainableCard
+                      attribution={attribution}
+                      onOpenReport={handleExportReport}
+                      onOpenActionPacket={handleGenerateActionPacket}
+                    />
+                  )}
+                </div>
+              </section>
+            )}
 
         {activeNav === 'GRAPH' && (
           <section style={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -547,6 +566,8 @@ export const App: React.FC = () => {
               </table>
             </div>
           </section>
+        )}
+          </>
         )}
       </main>
 

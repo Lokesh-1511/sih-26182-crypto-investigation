@@ -1,0 +1,77 @@
+[
+  {
+    "chain": "ethereum",
+    "address": "0x1111111111111111111111111111111111111111",
+    "entity_id": "entity_binance_test",
+    "entity_name": "Binance",
+    "entity_type": "VASP",
+    "vasp_status": true,
+    "source": "fixture_registry",
+    "source_reference": "fixture://ethereum_entities.json",
+    "notes": "Synthetic Binance Hot Wallet Fixture for Multi-Hop Testing"
+  },
+  {
+    "chain": "ethereum",
+    "address": "0x2222222222222222222222222222222222222222",
+    "entity_id": "entity_coinbase_test",
+    "entity_name": "Coinbase Custody",
+    "entity_type": "CUSTODIAN",
+    "vasp_status": true,
+    "source": "fixture_registry",
+    "source_reference": "fixture://ethereum_entities.json",
+    "notes": "Synthetic Coinbase Custody Fixture"
+  },
+  {
+    "chain": "ethereum",
+    "address": "0x3333333333333333333333333333333333333333",
+    "entity_id": "entity_uniswap_router",
+    "entity_name": "Uniswap V3 Router",
+    "entity_type": "PROTOCOL",
+    "vasp_status": false,
+    "source": "fixture_registry",
+    "source_reference": "fixture://ethereum_entities.json",
+    "notes": "Decentralized Liquidity Protocol (Non-VASP)"
+  },
+  {
+    "chain": "ethereum",
+    "address": "0x4444444444444444444444444444444444444444",
+    "entity_id": "entity_ambiguous_exchange_a",
+    "entity_name": "Exchange Alpha",
+    "entity_type": "EXCHANGE",
+    "vasp_status": true,
+    "source": "fixture_registry",
+    "source_reference": "fixture://ethereum_entities.json#candidate_1"
+  },
+  {
+    "chain": "ethereum",
+    "address": "0x4444444444444444444444444444444444444444",
+    "entity_id": "entity_ambiguous_exchange_b",
+    "entity_name": "Exchange Beta",
+    "entity_type": "EXCHANGE",
+    "vasp_status": true,
+    "source": "fixture_registry",
+    "source_reference": "fixture://ethereum_entities.json#candidate_2"
+  },
+  {
+    "chain": "ethereum",
+    "address": "0x28c6c06298d514db089934071355e5743bf21d60",
+    "entity_id": "VASP_BINANCE_14",
+    "entity_name": "Binance",
+    "entity_type": "VASP",
+    "vasp_status": true,
+    "source": "knowledge_base",
+    "source_reference": "data/knowledge_base/hot_wallets.json",
+    "notes": "Binance 14 Hot Omnibus Wallet"
+  },
+  {
+    "chain": "ethereum",
+    "address": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+    "entity_id": "VASP_BINANCE_DEP",
+    "entity_name": "Binance Deposit Infrastructure",
+    "entity_type": "VASP",
+    "vasp_status": true,
+    "source": "knowledge_base",
+    "source_reference": "data/knowledge_base/deposit_wallets.json",
+    "notes": "Verified Binance Custodial Deposit Infrastructure"
+  }
+]

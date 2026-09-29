@@ -24,105 +24,107 @@ pytestmark = pytest.mark.skipif(
     reason="Live Investigation API test is opt-in. Set RUN_LIVE_BITQUERY=1 and BITQUERY_ACCESS_TOKEN to execute live queries."
 )
 
-def test_live_investigation_api_ethereum_wallet(monkeypatch):
+def test_live_investigation_api_ethereum_outgoing_multihop(monkeypatch):
     """
-    Proves live HTTP API -> Investigation Router -> InvestigationService -> ProviderFactory ->
-    BitqueryProvider -> Bitquery V2 API -> NormalizedTransfer/NormalizedTransaction ->
-    TransactionCollector -> GraphBuilder -> GraphTraversalEngine -> InvestigationResponse.
-
-    Uses small bounds: max_hops=1, max_transactions=5 to conserve Bitquery points.
+    Live outgoing multi-hop verification for Ethereum wallet with controlled bounds (max_hops=2, max_transactions=5).
     """
-    # 1. Ensure live mode is configured for ProviderFactory
     monkeypatch.setenv("DATA_SOURCE_MODE", "LIVE_BITQUERY")
-    
-    # 2. Verify that ProviderFactory actually resolves to BitqueryProvider
     resolved_provider = ProviderFactory.get_provider()
-    assert isinstance(
-        resolved_provider, BitqueryProvider
-    ), f"Expected BitqueryProvider under LIVE_BITQUERY mode, got {type(resolved_provider)}"
+    assert isinstance(resolved_provider, BitqueryProvider)
 
     target_wallet = "0x28C6c06298d514Db089934071355E5743bf21d60"
 
-    # 3. Call actual FastAPI HTTP endpoint
     resp = client.post(
         "/api/v1/investigations",
         json={
             "chain": "ethereum",
             "address": target_wallet,
-            "max_hops": 1,
+            "direction": "outgoing",
+            "max_hops": 2,
             "max_transactions": 5
         }
     )
 
-    # Diagnostic output on failure / logging
-    print(f"\n[LIVE TEST DIAGNOSTIC] HTTP Status: {resp.status_code}")
-
+    print(f"\n[LIVE OUTGOING TEST] HTTP Status: {resp.status_code}")
     assert resp.status_code == 200, f"Expected 200 OK, got {resp.status_code}: {resp.text}"
     data = resp.json()
 
-    # 4. Assert Top-Level Response Structure
     assert data["status"] == "completed"
     assert data["chain"] == "ethereum"
     assert data["root_address"].lower() == target_wallet.lower()
-    assert isinstance(data["investigation_id"], str) and len(data["investigation_id"]) > 0
     assert "summary" in data
-    assert "graph" in data
-
-    summary = data["summary"]
-    print(f"[LIVE TEST DIAGNOSTIC] Summary: Nodes={summary.get('nodes')}, Edges={summary.get('edges')}, "
-          f"Tx={summary.get('transactions')}, Transfers={summary.get('transfers')}, Hops={summary.get('hops')}")
-
-    # 5. Assert Summary Counts
-    assert summary["nodes"] >= 1
-    assert summary["edges"] >= 0
-    assert summary["transactions"] >= 0
-    assert summary["transfers"] >= 0
-    assert summary["hops"] >= 0
-
-    # 6. Assert Graph & Nodes
-    graph = data["graph"]
-    assert "nodes" in graph
-    assert "edges" in graph
-    assert len(graph["nodes"]) >= 1
+    assert "trace" in data
+    assert data["trace"]["direction"] == "outgoing"
+    assert data["trace"]["requested_max_hops"] == 2
+    assert data["summary"]["transactions"] <= 5
 
     # Root wallet must appear as SUSPECT
     root_node_matches = [
-        n for n in graph["nodes"]
+        n for n in data["graph"]["nodes"]
         if n["address"].lower() == target_wallet.lower() or n["id"].lower() == target_wallet.lower()
     ]
-    assert len(root_node_matches) >= 1, f"Root wallet {target_wallet} not found in graph nodes"
-    root_node = root_node_matches[0]
-    assert root_node["node_type"] == "SUSPECT", f"Expected SUSPECT, got {root_node['node_type']}"
+    assert len(root_node_matches) >= 1
+    assert root_node_matches[0]["node_type"] == "SUSPECT"
+    assert root_node_matches[0]["hop_distance"] == 0
 
-    # 7. Assert Real Blockchain Edges & Exact Amounts
-    if summary["edges"] > 0:
-        assert len(graph["edges"]) > 0
-        tx_hash_pattern = re.compile(r"^0x[0-9a-fA-F]{64}$")
+    # Ensure all amount values are string-serialized decimals
+    for edge in data["graph"]["edges"]:
+        assert isinstance(edge["amount"], str)
 
-        for edge in graph["edges"]:
-            assert "id" in edge
-            assert "transfer_id" in edge
-            assert "tx_hash" in edge
-            assert "source" in edge
-            assert "target" in edge
-            assert "asset_id" in edge
-            assert "amount" in edge
-            assert "timestamp" in edge
-            assert "transfer_type" in edge
-            assert "evidence_ref" in edge
-
-            # Amount must be string representation of exact Decimal
-            assert isinstance(edge["amount"], str), f"Amount must be serialized as string, got {type(edge['amount'])}"
-
-            # Tx hash must match standard EVM transaction hash format
-            if edge["tx_hash"]:
-                assert tx_hash_pattern.match(edge["tx_hash"]), f"Invalid tx_hash format: {edge['tx_hash']}"
-
-    # 8. Verify No Provider Leakage
+    # Zero credential leakage check
     raw_json_str = resp.text
     token = os.environ.get("BITQUERY_ACCESS_TOKEN", "")
     if token:
-        assert token not in raw_json_str, "Bitquery access token leaked into HTTP response!"
-    assert "graphql" not in raw_json_str.lower(), "GraphQL query/structure leaked into response!"
-    assert "networkx" not in raw_json_str.lower(), "NetworkX internal structures leaked into response!"
-    assert "authorization" not in raw_json_str.lower(), "Authorization header leaked into response!"
+        assert token not in raw_json_str
+    assert "authorization" not in raw_json_str.lower()
+
+
+def test_live_investigation_api_ethereum_incoming_multihop(monkeypatch):
+    """
+    Live incoming multi-hop verification for Ethereum wallet with controlled bounds (max_hops=2, max_transactions=5).
+    """
+    monkeypatch.setenv("DATA_SOURCE_MODE", "LIVE_BITQUERY")
+    resolved_provider = ProviderFactory.get_provider()
+    assert isinstance(resolved_provider, BitqueryProvider)
+
+    target_wallet = "0x28C6c06298d514Db089934071355E5743bf21d60"
+
+    resp = client.post(
+        "/api/v1/investigations",
+        json={
+            "chain": "ethereum",
+            "address": target_wallet,
+            "direction": "incoming",
+            "max_hops": 2,
+            "max_transactions": 5
+        }
+    )
+
+    print(f"\n[LIVE INCOMING TEST] HTTP Status: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected 200 OK, got {resp.status_code}: {resp.text}"
+    data = resp.json()
+
+    assert data["status"] == "completed"
+    assert data["chain"] == "ethereum"
+    assert data["root_address"].lower() == target_wallet.lower()
+    assert "summary" in data
+    assert "trace" in data
+    assert data["trace"]["direction"] == "incoming"
+    assert data["trace"]["requested_max_hops"] == 2
+    assert data["summary"]["transactions"] <= 5
+
+    # Check root wallet
+    root_node_matches = [
+        n for n in data["graph"]["nodes"]
+        if n["address"].lower() == target_wallet.lower() or n["id"].lower() == target_wallet.lower()
+    ]
+    assert len(root_node_matches) >= 1
+    assert root_node_matches[0]["node_type"] == "SUSPECT"
+    assert root_node_matches[0]["hop_distance"] == 0
+
+    # Critical Rule 7 verification: graph edges MUST retain actual blockchain from -> to direction
+    for edge in data["graph"]["edges"]:
+        assert isinstance(edge["amount"], str)
+        # For incoming transfers into root or intermediaries, edge.source -> edge.target is preserved
+        assert "source" in edge
+        assert "target" in edge

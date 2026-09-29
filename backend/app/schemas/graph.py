@@ -18,10 +18,15 @@ class GraphNode(BaseModel):
     id: str
     address: str
     chain: Chain
-    node_type: str = "INTERMEDIARY"  # SUSPECT, INTERMEDIARY, VASP_DEPOSIT, VASP_HOT, MIXER, BRIDGE
+    node_type: str = "INTERMEDIARY"  # SUSPECT, INTERMEDIARY, VASP_DEPOSIT, VASP_HOT, MIXER, BRIDGE, BOUNDARY
     label: Optional[str] = None
     entity_name: Optional[str] = None
+    entity_type: Optional[str] = None
+    is_vasp: bool = False
     confidence: float = 1.0
+    hop_distance: int = Field(default=0, description="Topological hop distance from root suspect wallet (0 for root)")
+    is_boundary: bool = Field(default=False, description="True if node lies on max_hops or budget boundary")
+    boundary_reason: Optional[str] = Field(default=None, description="Reason for boundary classification (e.g. MAX_HOPS_REACHED, TRANSACTION_LIMIT_REACHED)")
     is_breakpoint: bool = False
     breakpoint_details: Optional[ObfuscationBreakpoint] = None
     metadata: Dict[str, Any] = {}
@@ -39,6 +44,7 @@ class GraphEdge(BaseModel):
     transfer_type: str = Field(default="NATIVE", description="Transfer mechanism: NATIVE, TOKEN, INTERNAL, UTXO_INPUT, UTXO_OUTPUT")
     edge_type: str = Field(default="TRANSFER", description="Forensic edge categorization: TRANSFER, SWEEP, BRIDGE_ROUTE")
     hop: int = Field(default=1, description="Hop distance from suspect/root")
+    is_boundary: bool = Field(default=False, description="True if edge connects to a boundary node")
     evidence_ref: Optional[str] = Field(None, description="Pointer to supporting on-chain evidence")
 
     @model_validator(mode="before")
