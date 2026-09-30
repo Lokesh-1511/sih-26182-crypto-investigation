@@ -134,7 +134,7 @@ class InvestigationService:
                 direction=dir_str
             )
 
-            return InvestigationResponse(
+            inv_resp = InvestigationResponse(
                 investigation_id=inv_id,
                 chain=request.chain,
                 root_address=normalized_root,
@@ -145,6 +145,10 @@ class InvestigationService:
                 entity_resolutions=entity_resolutions,
                 vasp_attributions=vasp_attributions
             )
+            from ..evidence.builder import EvidenceBuilder
+            evidence_items = EvidenceBuilder.build_evidence_items(inv_resp)
+            inv_resp.evidence_items = [e.model_dump() for e in evidence_items]
+            return inv_resp
 
         # 5. Build FundFlowGraph using GraphBuilder
         builder = GraphBuilder()
@@ -200,7 +204,7 @@ class InvestigationService:
             hops=actual_max_hops
         )
 
-        return InvestigationResponse(
+        inv_resp = InvestigationResponse(
             investigation_id=inv_id,
             chain=request.chain,
             root_address=normalized_root,
@@ -211,4 +215,9 @@ class InvestigationService:
             entity_resolutions=entity_resolutions,
             vasp_attributions=vasp_attributions
         )
+        from ..evidence.builder import EvidenceBuilder
+        evidence_items = EvidenceBuilder.build_evidence_items(inv_resp)
+        inv_resp.evidence_items = [e.model_dump() for e in evidence_items]
+        return inv_resp
+
 

@@ -66,5 +66,7 @@ class InvestigationResponse(BaseModel):
     trace: Optional[TraceMetadata] = Field(default=None, description="Traversal execution and boundary metadata")
     entity_resolutions: List[EntityResolution] = Field(default_factory=list, description="Resolved entity details for discovered addresses")
     vasp_attributions: List[VaspAttribution] = Field(default_factory=list, description="Path-aware VASP attribution candidates")
+    evidence_items: List[Dict[str, Any]] = Field(default_factory=list, description="Structured forensic evidence matrix items")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp of investigation execution")
+
 

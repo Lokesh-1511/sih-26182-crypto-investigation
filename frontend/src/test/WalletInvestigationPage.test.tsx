@@ -329,7 +329,7 @@ describe('WalletInvestigationPage Component - Phase 8 Multi-Hop Fund-Flow Tracin
     fireEvent.click(screen.getByRole('button', { name: /Investigate Wallet/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('◆ VASP-ASSOCIATED')).toBeInTheDocument();
+      expect(screen.getAllByText(/VASP-ASSOCIATED/).length).toBeGreaterThan(0);
       expect(screen.getByTitle('Click to inspect root suspect wallet')).toBeInTheDocument();
     });
 

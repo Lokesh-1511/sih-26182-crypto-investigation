@@ -1,13 +1,18 @@
 // frontend/src/pages/WalletInvestigationPage.tsx
 import React, { useState } from 'react';
+import * as api from '../services/api';
 import {
-  investigateWallet,
   InvestigationResponse,
   InvestigationNode,
   InvestigationEdge,
-  InvestigationCreateRequest
+  InvestigationCreateRequest,
+  EvidenceItem,
+  EvidenceClass,
+  LawfulActionPacketData
 } from '../services/api';
 import { WalletFundFlowGraph } from '../components/WalletFundFlowGraph';
+import { ActionPacketModal } from '../components/ActionPacketModal';
+
 
 interface Props {
   theme?: 'light' | 'dark';
@@ -31,6 +36,14 @@ export const WalletInvestigationPage: React.FC<Props> = ({ theme = 'light' }) =>
   const [selectedNode, setSelectedNode] = useState<InvestigationNode | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<InvestigationEdge | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Phase 10 Evidence & Export State
+  const [evidenceFilter, setEvidenceFilter] = useState<'ALL' | EvidenceClass>('ALL');
+  const [actionPacketModalOpen, setActionPacketModalOpen] = useState<boolean>(false);
+  const [actionPacketData, setActionPacketData] = useState<LawfulActionPacketData | null>(null);
+  const [exportLoading, setExportLoading] = useState<boolean>(false);
+  const [exportStatusMessage, setExportStatusMessage] = useState<string | null>(null);
+
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -71,9 +84,10 @@ export const WalletInvestigationPage: React.FC<Props> = ({ theme = 'light' }) =>
         max_hops: Number(maxHops),
         max_transactions: Number(maxTransactions)
       };
-      const resp = await investigateWallet(req);
+      const resp = await api.investigateWallet(req);
       setInvestigationData(resp);
     } catch (err: any) {
+      console.error('INVESTIGATION_ERROR_LOG:', err);
       setError(err.message || 'An unexpected error occurred during investigation.');
     } finally {
       clearTimeout(stepTimer1);
@@ -106,12 +120,106 @@ export const WalletInvestigationPage: React.FC<Props> = ({ theme = 'light' }) =>
     if (edge) setSelectedNode(null);
   };
 
+  const handleExportDossier = async () => {
+    if (!investigationData) return;
+    setExportLoading(true);
+    setExportStatusMessage('Exporting Case Dossier...');
+    try {
+      const dossier = await api.fetchInvestigationDossier(investigationData);
+      api.downloadJsonFile(dossier, `dossier_${investigationData.investigation_id}.json`);
+      setExportStatusMessage('✓ Dossier JSON exported successfully');
+      setTimeout(() => setExportStatusMessage(null), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to export case dossier');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleDownloadReport = async () => {
+    if (!investigationData) return;
+    setExportLoading(true);
+    setExportStatusMessage('Generating Forensic Report...');
+    try {
+      const report = await api.generateInvestigationReport(investigationData);
+      api.downloadHtmlFile(report.html_content, `report_${investigationData.investigation_id}.html`);
+      setExportStatusMessage('✓ Report downloaded successfully');
+      setTimeout(() => setExportStatusMessage(null), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate report');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleOpenActionPacket = async () => {
+    if (!investigationData) return;
+    setExportLoading(true);
+    setExportStatusMessage('Drafting Lawful Action Packet...');
+    try {
+      const packet = await api.generateInvestigationActionPacket(investigationData);
+      setActionPacketData(packet);
+      setActionPacketModalOpen(true);
+      setExportStatusMessage(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to draft action packet');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+
+  const handleEvidenceInspect = (ev: EvidenceItem) => {
+    if (!investigationData || !investigationData.graph) return;
+    
+    // 1. Try to find matching edge
+    if (ev.tx_hash || ev.transfer_id) {
+      const edge = investigationData.graph.edges.find(
+        (e) => (ev.transfer_id && e.transfer_id === ev.transfer_id) ||
+               (ev.tx_hash && e.tx_hash.toLowerCase() === ev.tx_hash.toLowerCase())
+      );
+      if (edge) {
+        handleSelectEdge(edge);
+        return;
+      }
+    }
+
+    // 2. Try to find matching destination/source node
+    const targetAddr = ev.destination_address || ev.source_address;
+    if (targetAddr) {
+      const clean = targetAddr.includes(':') ? targetAddr.split(':')[1].toLowerCase() : targetAddr.toLowerCase();
+      const node = investigationData.graph.nodes.find(
+        (n) => n.address.toLowerCase() === clean || n.id.toLowerCase() === targetAddr.toLowerCase()
+      );
+      if (node) {
+        handleSelectNode(node);
+        return;
+      }
+    }
+  };
+
+  const rawEvidence = investigationData?.evidence_items || [];
+  const filteredEvidence = evidenceFilter === 'ALL'
+    ? rawEvidence
+    : rawEvidence.filter((item) => item.evidence_class === evidenceFilter);
+
+  const evidenceCounts = {
+    ALL: rawEvidence.length,
+    OBSERVED: rawEvidence.filter((i) => i.evidence_class === 'OBSERVED').length,
+    RESOLVED: rawEvidence.filter((i) => i.evidence_class === 'RESOLVED').length,
+    DERIVED: rawEvidence.filter((i) => i.evidence_class === 'DERIVED').length,
+    INFERRED: rawEvidence.filter((i) => i.evidence_class === 'INFERRED').length,
+    UNKNOWN: rawEvidence.filter((i) => i.evidence_class === 'UNKNOWN').length,
+  };
+
   const handleRowClick = (edge: InvestigationEdge, evt?: React.MouseEvent) => {
     if (evt && (evt.target as HTMLElement)?.closest('.address-node-link')) {
       return;
     }
     handleSelectEdge(edge);
   };
+
+
 
   const isEmptyResult =
     investigationData &&
@@ -413,15 +521,20 @@ export const WalletInvestigationPage: React.FC<Props> = ({ theme = 'light' }) =>
               <span className="badge-pill info" style={{ fontSize: 9.5 }}>
                 {investigationData.trace?.direction === 'incoming' ? 'BACKWARD TRACE' : 'FORWARD TRACE'}
               </span>
+              {investigationData.vasp_attributions && investigationData.vasp_attributions.length > 0 && (
+                <span className="badge-pill counterfactual" style={{ fontSize: 9.5 }}>◆ VASP-ASSOCIATED</span>
+              )}
               <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
                 Root: <span
                   className="mono"
                   style={{ color: 'var(--accent-primary)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
                   title="Click to inspect root suspect wallet"
                   onClick={() => {
+                    const rootClean = investigationData.root_address.toLowerCase();
                     const rootNode = investigationData.graph.nodes.find(
-                      (n) => n.address.toLowerCase() === investigationData.root_address.toLowerCase() ||
-                             n.id.toLowerCase() === investigationData.root_address.toLowerCase()
+                      (n) => n.address.toLowerCase() === rootClean ||
+                             n.id.toLowerCase() === rootClean ||
+                             n.id.toLowerCase().endsWith(rootClean)
                     );
                     if (rootNode) handleSelectNode(rootNode);
                   }}
@@ -429,6 +542,7 @@ export const WalletInvestigationPage: React.FC<Props> = ({ theme = 'light' }) =>
                   {formatAddress(investigationData.root_address)}
                 </span>
               </span>
+
               <button
                 type="button"
                 className="tool-btn"
@@ -879,7 +993,217 @@ export const WalletInvestigationPage: React.FC<Props> = ({ theme = 'light' }) =>
             </div>
           </section>
 
-          {/* 3. Ingested Transfer Activity Table (Immediately below workspace) */}
+          {/* 3. Formal Evidence Matrix Panel (Phase 10) */}
+          <div className="card-box" style={{ flexShrink: 0, marginBottom: 8 }} data-testid="evidence-matrix-panel">
+            <div className="card-box-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+              <div>
+                <span className="card-box-title" style={{ fontSize: 11 }}>Structured Forensic Evidence Matrix</span>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 8 }}>
+                  {filteredEvidence.length} of {rawEvidence.length} evidence records
+                </span>
+              </div>
+
+              {/* Evidence Classification Filter Tabs */}
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {(['ALL', 'OBSERVED', 'RESOLVED', 'DERIVED', 'INFERRED', 'UNKNOWN'] as const).map((filterKey) => {
+                  const count = evidenceCounts[filterKey];
+                  const isActive = evidenceFilter === filterKey;
+                  return (
+                    <button
+                      key={filterKey}
+                      type="button"
+                      className={`tool-btn ${isActive ? 'active' : ''}`}
+                      style={{ fontSize: 8.5, padding: '2px 6px', display: 'flex', alignItems: 'center', gap: 4 }}
+                      onClick={() => setEvidenceFilter(filterKey)}
+                    >
+                      <span>{filterKey}</span>
+                      <span style={{
+                        background: isActive ? 'rgba(255,255,255,0.2)' : 'var(--bg-input)',
+                        padding: '0 4px',
+                        borderRadius: 8,
+                        fontSize: 8,
+                        fontWeight: 700
+                      }}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="registry-table-container" style={{ maxHeight: 220, overflowY: 'auto' }}>
+              <table className="registry-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '12%' }}>Evidence ID</th>
+                    <th style={{ width: '11%' }}>Class</th>
+                    <th>Forensic Finding</th>
+                    <th style={{ width: '15%' }}>Amount / Asset</th>
+                    <th style={{ width: '22%' }}>Tx Hash / Ref</th>
+                    <th style={{ width: '6%' }}>Hop</th>
+                    <th style={{ width: '14%' }}>Association</th>
+                    <th style={{ width: '8%' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEvidence.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '16px' }}>
+                        No evidence records matching classification '{evidenceFilter}'.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredEvidence.map((ev, idx) => {
+                      const badgeClass =
+                        ev.evidence_class === 'OBSERVED' ? 'verified' :
+                        ev.evidence_class === 'RESOLVED' ? 'eth' :
+                        ev.evidence_class === 'DERIVED' ? 'urgent' :
+                        ev.evidence_class === 'INFERRED' ? 'counterfactual' : 'subtle';
+
+                      return (
+                        <tr key={ev.evidence_id || `ev_${idx}`}>
+                          <td className="mono" style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {ev.evidence_id}
+                          </td>
+                          <td>
+                            <span className={`badge-pill ${badgeClass}`} style={{ fontSize: 8.5 }}>
+                              {ev.evidence_class}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {ev.title}
+                            </div>
+                            <div style={{ fontSize: 9.5, color: 'var(--text-muted)', marginTop: 1, lineHeight: 1.3 }}>
+                              {ev.description}
+                            </div>
+                          </td>
+                          <td className="mono" style={{ fontSize: 10, fontWeight: 700, color: 'var(--sig-positive)', whiteSpace: 'nowrap' }}>
+                            {ev.amount ? `${ev.amount} ${ev.asset || ''}` : '—'}
+                          </td>
+                          <td className="mono" style={{ fontSize: 9.5, color: 'var(--accent-primary)', whiteSpace: 'nowrap' }}>
+                            {ev.tx_hash ? (
+                              <>
+                                <span title={ev.tx_hash}>{formatTxHash(ev.tx_hash)}</span>
+                                <button
+                                  type="button"
+                                  className="tool-btn"
+                                  style={{ marginLeft: 4, padding: '0 3px', fontSize: 8.5 }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    copyToClipboard(ev.tx_hash!, `ev_tx_${idx}`);
+                                  }}
+                                >
+                                  {copiedKey === `ev_tx_${idx}` ? '✓' : 'Copy'}
+                                </button>
+                              </>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)' }}>{ev.source_reference || ev.source || '—'}</span>
+                            )}
+                          </td>
+                          <td style={{ fontSize: 10, textAlign: 'center' }}>
+                            {ev.hop_distance !== null && ev.hop_distance !== undefined ? (
+                              <span className="badge-pill subtle" style={{ fontSize: 8.5 }}>
+                                Hop {ev.hop_distance}
+                              </span>
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+                          <td style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
+                            {ev.entity_association || ev.vasp_association || '—'}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="tool-btn"
+                              style={{ fontSize: 8.5, padding: '1px 5px' }}
+                              onClick={() => handleEvidenceInspect(ev)}
+                            >
+                              Inspect
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* 4. Case Dossier Export & Action Packet Toolbar (Phase 10) */}
+          <div className="card-box" style={{ flexShrink: 0, marginBottom: 8, padding: '10px 14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Case Dossier Export & Statutory Requisition
+                </div>
+                <div style={{ fontSize: 9.5, color: 'var(--text-muted)', marginTop: 2 }}>
+                  Operator vs Beneficiary: Blockchain evidence reflects infrastructure path proximity; does not establish natural person beneficiary identity without off-chain KYC records.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {exportStatusMessage && (
+                  <span style={{ fontSize: 9.5, color: 'var(--sig-positive)', fontWeight: 600 }}>
+                    {exportStatusMessage}
+                  </span>
+                )}
+                
+                <button
+                  type="button"
+                  data-testid="export-dossier-btn"
+                  className="tool-btn"
+                  disabled={exportLoading}
+                  style={{ fontSize: 10, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}
+                  onClick={handleExportDossier}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Export Dossier (JSON)
+                </button>
+
+                <button
+                  type="button"
+                  data-testid="download-report-btn"
+                  className="tool-btn"
+                  disabled={exportLoading}
+                  style={{ fontSize: 10, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}
+                  onClick={handleDownloadReport}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                  </svg>
+                  Download Report (HTML/PDF)
+                </button>
+
+                <button
+                  type="button"
+                  data-testid="generate-action-packet-btn"
+                  className="tool-btn active"
+                  disabled={exportLoading}
+                  style={{ fontSize: 10, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}
+                  onClick={handleOpenActionPacket}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                  Draft Action Packet (Sec 91 CrPC)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Ingested Transfer Activity Table (Immediately below workspace) */}
           <div className="card-box" style={{ flexShrink: 0, marginBottom: 8 }}>
             <div className="card-box-header">
               <span className="card-box-title" style={{ fontSize: 11 }}>Ingested Transfer Activity</span>
@@ -1011,8 +1335,16 @@ export const WalletInvestigationPage: React.FC<Props> = ({ theme = 'light' }) =>
           </div>
         </>
       )}
+
+      {/* Action Packet Modal for Review-Ready Statutory Drafts */}
+      <ActionPacketModal
+        isOpen={actionPacketModalOpen}
+        onClose={() => setActionPacketModalOpen(false)}
+        packetData={actionPacketData}
+      />
     </div>
   );
 };
 
 export default WalletInvestigationPage;
+

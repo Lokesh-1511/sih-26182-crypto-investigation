@@ -206,6 +206,73 @@ export interface InvestigationGraphData {
   total_edges?: number;
 }
 
+export type EvidenceClass = 'OBSERVED' | 'DERIVED' | 'RESOLVED' | 'INFERRED' | 'UNKNOWN';
+
+export interface EvidenceItem {
+  evidence_id: string;
+  evidence_class: EvidenceClass;
+  evidence_type: string;
+  title: string;
+  description: string;
+  source: string;
+  source_reference?: string | null;
+  tx_hash?: string | null;
+  transfer_id?: string | null;
+  source_address?: string | null;
+  destination_address?: string | null;
+  asset?: string | null;
+  amount?: string | null;
+  timestamp?: string | null;
+  hop_distance?: number | null;
+  graph_relationship?: string | null;
+  entity_association?: string | null;
+  vasp_association?: string | null;
+  confidence_qualification?: string | null;
+  provenance_metadata?: Record<string, any>;
+}
+
+export interface CaseDossier {
+  dossier_id: string;
+  investigation_id: string;
+  chain: string;
+  root_wallet: string;
+  direction: string;
+  requested_max_hops: number;
+  actual_depth_reached: number;
+  trace_termination_reason: string;
+  summary: InvestigationSummary;
+  nodes_count: number;
+  edges_count: number;
+  transactions_count: number;
+  transfers_count: number;
+  entity_resolutions: EntityResolution[];
+  vasp_attributions: VaspAttribution[];
+  evidence_items: EvidenceItem[];
+  operator_vs_beneficiary_notice: string;
+  limitations_disclaimer: string;
+  generated_at: string;
+  dossier_hash_sha256: string;
+}
+
+export interface LawfulActionPacketData {
+  packet_id: string;
+  case_id: string;
+  suspect_wallet: string;
+  chain: string;
+  attributed_vasp: string;
+  attribution_confidence: string;
+  operator_role: string;
+  beneficiary_identity: string;
+  integrity_hash_sha256: string;
+  preservation_notice_draft: string;
+  disclosure_request_draft: string;
+  statutory_disclaimer: string;
+  generated_at?: string;
+  investigator?: string;
+  terminal_deposit_address?: string;
+  formal_disclosure_draft?: string;
+}
+
 export interface InvestigationResponse {
   investigation_id: string;
   chain: string;
@@ -216,6 +283,7 @@ export interface InvestigationResponse {
   trace?: TraceMetadata;
   entity_resolutions?: EntityResolution[];
   vasp_attributions?: VaspAttribution[];
+  evidence_items?: EvidenceItem[];
   created_at?: string;
 }
 
@@ -226,6 +294,7 @@ export interface InvestigationCreateRequest {
   max_hops?: number;
   max_transactions?: number;
 }
+
 
 /**
  * Centralized API client function to initiate a wallet investigation via POST /api/v1/investigations.
@@ -334,3 +403,76 @@ export async function generateActionPacket(caseId: string) {
   const res = await fetch(`${API_BASE}/cases/${caseId}/action-packet`, { method: 'POST' });
   return res.json();
 }
+
+/**
+ * Phase 10 — Case Dossier & Export API Client Endpoints
+ */
+export async function fetchInvestigationDossier(
+  investigation: InvestigationResponse
+): Promise<CaseDossier> {
+  const res = await fetch(`${API_BASE}/v1/investigations/dossier`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(investigation)
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to generate case dossier: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function generateInvestigationReport(
+  investigation: InvestigationResponse,
+  investigator: string = 'Authorized Investigating Officer'
+): Promise<{ report_path: string; report_hash: string; html_content: string }> {
+  const res = await fetch(`${API_BASE}/v1/investigations/pdf?investigator=${encodeURIComponent(investigator)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(investigation)
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to generate forensic report: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function generateInvestigationActionPacket(
+  investigation: InvestigationResponse,
+  investigator: string = 'Authorized Investigating Officer'
+): Promise<LawfulActionPacketData> {
+  const res = await fetch(`${API_BASE}/v1/investigations/action-packet?investigator=${encodeURIComponent(investigator)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(investigation)
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to draft action packet: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export function downloadJsonFile(data: any, filename: string): void {
+  const jsonStr = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+export function downloadHtmlFile(htmlContent: string, filename: string): void {
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
